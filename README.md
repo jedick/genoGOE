@@ -34,17 +34,17 @@ To test the strength of association of a continuous dependent variable (GC conte
 
 GC content is a continuous compositional metric that measures the fraction of G and C bases in the genome sequence.
 Temperature and pH are continuous predictors, but Oxygen tolerance and Nutrition type are categorical.
-The continuous predictors are converted to **dummy variables**; for a categorical predictor with k levels, this creates k-1 binary columns, dropping one category as the reference group.
+The categorical predictors are converted to **dummy variables**; for a categorical predictor with k levels, this creates k-1 binary columns, dropping one category as the reference group.
 The R function **lm()** does this automatically.
 
 We directed Cursor to write the analysis script.
 In particular, we asked for ranges to be converted to means.
-For example, a value of Temperature entered as 14-42 was treated as 28.
+For example, a value of Temperature listed as 15-42 was treated as 28.5.
 The resulting code is available in [`ols_bacdive.R`](bacdive/ols_bacdive.R):
 
 The summary of the resulting model fit is listed below.
 
-*NOTE*: One level each for Oxygen tolerance (`aerobe`) and Nutrition type (`autotroph`) are not listed because of the dummy encoding for categorical predictors.
+*NOTE*: One level for each of Oxygen tolerance (`aerobe`) and Nutrition type (`autotroph`) is not listed in the summary because of the dummy encoding for categorical predictors.
 
 ```r
 > summary(model)
@@ -107,7 +107,7 @@ However, we should not rely only on significance tests.
 
 #### Effect size
 
-A more revealing analysis would compare the effect sizes of categorical predictors instead of the significance value of levels within each category.
+A more revealing analysis would use the effect sizes of categorical predictors instead of the significance value of levels within each category.
 To do this, we used the [**effectsize**](https://easystats.github.io/effectsize/) package[^2] to estimate how much variance in GC content is accounted for by each of the predictors.
 These estimates are partial sums of squares and are applicable to both continuous and categorical predictors[^3].
 
@@ -166,7 +166,7 @@ ggsave("GC_content.png", width = 6, height = 4)
 
 ### Takeaways
 
-- **Oxygen tolerance** emerges as the predictor that has the largest effect size, especially in the bias-corrected estimate.
+- **Oxygen tolerance** emerges as the predictor that has the largest effect size.
 - Anaerobes tend to have lower GC content.
 - The low R-squared value means that a lot of variation in GC content is not accounted for by the model.
 

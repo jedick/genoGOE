@@ -222,7 +222,7 @@ Note the lower P-value and higher effect size for **Culture temperature** in the
 **Anaerobe** includes `anaerobe`, `facultative anaerobe`, or `obligate anaerobe`, and **Other** includes all other oxygen tolerance labels.
 Linear fits with 95% confidence bands are shown.
 
-<img src="bacdive/GC_Zc_vs_temperature.png" alt="Scatterplots of GC content and Zc vs temperature grouped by oxygen tolerance"/>
+<img src="bacdive/GC_Zc_vs_T_O2.png" alt="Scatterplots of GC content and Zc vs temperature grouped by oxygen tolerance"/>
 
 
 ### Takeaways

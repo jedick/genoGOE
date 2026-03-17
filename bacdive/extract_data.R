@@ -45,11 +45,44 @@ if (!id_col %in% names(dat)) stop("Column 'strains.ID_strains' not found after i
 dat <- dat[!is.na(dat[[id_col]]) & dat[[id_col]] != "", ]
 
 # Keep only the first row per strain (first occurrence in file)
-dat_first <- dat[!duplicated(dat[[id_col]]), ]
+df <- dat[!duplicated(dat[[id_col]]), ]
+
+# Helper: convert "a-b" (optionally with spaces) to mean (a+b)/2
+range_to_mean <- function(x) {
+  # Treat empty strings as NA
+  x <- ifelse(trimws(x) == "", NA, x)
+
+  # If entry contains "-", treat as range; otherwise try simple numeric
+  is_range <- grepl("-", x)
+
+  out <- rep(NA_real_, length(x))
+
+  # Handle ranges
+  if (any(is_range, na.rm = TRUE)) {
+    parts <- strsplit(gsub(" ", "", x[is_range]), "-", fixed = TRUE)
+    nums <- lapply(parts, function(v) as.numeric(v[1:2]))
+    means <- vapply(nums, function(v) mean(v, na.rm = TRUE), numeric(1))
+    out[is_range] <- means
+  }
+
+  # Handle non-range numeric values
+  if (any(!is_range & !is.na(x))) {
+    out[!is_range & !is.na(x)] <- suppressWarnings(
+      as.numeric(x[!is_range & !is.na(x)])
+    )
+  }
+
+  out
+}
+
+# Parse continuous variables (overwrite as numeric means)
+df$`culture_temp.Temperature`    <- range_to_mean(df$`culture_temp.Temperature`)
+df$`culture_pH.pH`               <- range_to_mean(df$`culture_pH.pH`)
+df$`GC_content.GC-content`       <- range_to_mean(df$`GC_content.GC-content`)
 
 # Write result
-write.csv(dat_first, output_file, row.names = FALSE)
+write.csv(df, output_file, row.names = FALSE)
 
 # Optional: show how many strains/rows were kept
-cat("Number of unique strains:", nrow(dat_first), "\n")
+cat("Number of unique strains:", nrow(df), "\n")
 cat("Output written to:", output_file, "\n")

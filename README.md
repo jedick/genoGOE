@@ -227,12 +227,17 @@ Linear fits with 95% confidence bands are shown.
 
 ### Takeaways
 
+The statistical analysis demonstrates that:
+
 - For both GC content and Zc, **Culture pH** has an effect size close to zero.
 - For GC content, **Oxygen tolerance** has the largest effect size, followed by **Nutrition type**.
 - For Zc, **Culture Temperature** has the largest effect size, followed by **Oxygen tolerance**.
-- GC content and Zc both tend to be lower in **Anaerobes**.
-- Zc (but not GC content) tends to be lower for higher-temperature cultures.
-- Using the same predictor variables, multiple linear regression accounts for more of the variation of Zc than of GC content (indicated by higher R-squared for the former).
+- Multiple linear regression accounts for more of the variation of Zc than of GC content (indicated by higher R-squared for the former).
+
+The visualization suggests the following:
+
+- After controlling for temperature, GC content and Zc both tend to be lower in **Anaerobes**.
+- After controlling for oxygen tolerance, Zc (but not GC content) tends to be lower for higher-temperature cultures.
 
 [^1]: [BacDive in 2025: the core database for prokaryotic strain data](https://doi.org/10.1093/nar/gkae959)
 

@@ -88,11 +88,80 @@ genoGOE_1 <- function(pdf = FALSE) {
   if(pdf) dev.off()
 }
 
-# Figure 2: Genome-wide differences of oxidation state between two lineages of methanogens
-genoGOE_2 <- function(pdf = FALSE, panel = NULL) {
+# Figure 2: Correlation of GC content and Zc with features from BacDive database
+genoGOE_2 <- function(pdf = FALSE) {
+  # Read data
+  df <- read.csv("bacdive/cleaned_data_with_Zc.csv", check.names = FALSE)
+
+  # Binary classification of Oxygen tolerance (Anaerobe or Other)
+  is_anaerobe <- grepl("anaerobe", df$`oxygen_tolerance.Oxygen tolerance`, ignore.case = TRUE)
+  df$`Oxygen tolerance` <- ifelse(is_anaerobe, "Anaerobe", "Other")
+
+  # Keep only rows with all variables needed for plotting
+  plot_df <- subset(
+    df,
+    !is.na(`culture_temp.Temperature`) &
+      !is.na(`GC_content.GC-content`) &
+      !is.na(Zc)
+  )
+
+  # Scatter: GC content vs temperature with linear fits by Oxygen tolerance
+  p_gc <- ggplot(
+    plot_df,
+    aes(
+      x = `culture_temp.Temperature`,
+      y = `GC_content.GC-content`,
+      color = `Oxygen tolerance`
+    )
+  ) +
+    geom_point(alpha = 0.5, size = 1.2) +
+    geom_smooth(method = "lm", se = TRUE, linewidth = 0.8) +
+    theme_minimal() +
+    labs(
+      x = "Culture temperature (°C)",
+      y = "GC content (%)",
+      color = "Oxygen tolerance",
+      title = "A"
+    ) +
+    scale_color_manual(values = c("Anaerobe" = "2", "Other" = "4")) +
+    theme(plot.title = element_text(face = "bold"))
+
+  # Scatter: Zc vs temperature with linear fits by Oxygen tolerance
+  p_zc <- ggplot(
+    plot_df,
+    aes(
+      x = `culture_temp.Temperature`,
+      y = Zc,
+      color = `Oxygen tolerance`
+    )
+  ) +
+    geom_point(alpha = 0.5, size = 1.2) +
+    geom_smooth(method = "lm", se = TRUE, linewidth = 0.8) +
+    theme_minimal() +
+    labs(
+      x = "Culture temperature (°C)",
+      y = "Zc",
+      color = "Oxygen tolerance",
+      title = "B"
+    ) +
+    scale_color_manual(values = c("Anaerobe" = "2", "Other" = "4")) +
+    theme(plot.title = element_text(face = "bold"))
+
+  # Arrange plots in a single row with shared legend
+  combined_plot <- p_gc + p_zc + plot_layout(nrow = 1, guides = "collect")
+
+  combined_plot <- combined_plot & theme(legend.position = "bottom")
+
+  if(pdf) file <- "Figure_2.pdf" else file <- "Figure_2.png"
+  ggplot2::ggsave(file, combined_plot, width = 10, height = 4, dpi = 300)
+
+}
+
+# Figure 3: Genome-wide differences of oxidation state between two lineages of methanogens
+genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
 
   if(is.null(panel)) {
-    if(pdf) pdf("Figure_2.pdf", width = 8, height = 6)
+    if(pdf) pdf("Figure_3.pdf", width = 8, height = 6)
     mat <- matrix(c(1,2,3, 1,2,4, 5,5,5), nrow = 3, byrow = TRUE)
     layout(mat, heights = c(1, 1, 2))
   }
@@ -310,10 +379,10 @@ genoGOE_2 <- function(pdf = FALSE, panel = NULL) {
 
 }
 
-# Figure 3: Carbon oxidation state of proteins in eukaryotic gene age groups
-genoGOE_3 <- function(pdf = FALSE) {
+# Figure 4: Carbon oxidation state of proteins in eukaryotic gene age groups
+genoGOE_4 <- function(pdf = FALSE) {
 
-  if(pdf) pdf("Figure_3.pdf", width = 7, height = 6)
+  if(pdf) pdf("Figure_4.pdf", width = 7, height = 6)
   layout(matrix(1:2), heights = c(1.2, 1.7))
 
   # Gene ages from Liebeskind et al. (2016)
@@ -408,8 +477,8 @@ genoGOE_3 <- function(pdf = FALSE) {
 
 }
 
-# Figure 4: Carbon oxidation state of reconstructed ancestral sequences and extant proteins 20250625
-genoGOE_4 <- function(pdf = FALSE) {
+# Figure 5: Carbon oxidation state of reconstructed ancestral sequences and extant proteins 20250625
+genoGOE_5 <- function(pdf = FALSE) {
 
   # Function to add Zc labels with red/blue colors 20250625
   label_y_axis <- function() {
@@ -538,7 +607,7 @@ genoGOE_4 <- function(pdf = FALSE) {
     text(3, -0.265, "Archaea+Eukaryota")
   }
 
-  if(pdf) pdf("Figure_4.pdf", width = 9, height = 6)
+  if(pdf) pdf("Figure_5.pdf", width = 9, height = 6)
   par(mfrow = c(2, 2))
   par(las = 1)
   par(mar = c(4.0, 5.0, 2.5, 1.0), mgp = c(2.5, 1, 0))
@@ -558,11 +627,11 @@ genoGOE_4 <- function(pdf = FALSE) {
 
 }
 
-# Figure 5: Relative stabilities of proteins as a function of environmental variables
-genoGOE_5 <- function(pdf = FALSE, panel = NULL) {
+# Figure 6: Relative stabilities of proteins as a function of environmental variables
+genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
 
   if(is.null(panel)) {
-    if(pdf) pdf("Figure_5.pdf", width = 12, height = 8)
+    if(pdf) pdf("Figure_6.pdf", width = 12, height = 8)
     layout(matrix(c(1,1,1,1,1, 2,2,2,2,2, 3,3,3,3,3, 4,4,4,
                     rep(5, 9), rep(6, 9)), nrow = 2, byrow = TRUE))
     par(cex = 1)

@@ -6,10 +6,12 @@ This repository holds the code and data for "Evolutionary oxidation of proteins 
 
 - R - download from [CRAN](https://cran.r-project.org)
 - R packages - install with `install.packages(c("canprot", "CHNOSZ", "plotrix", "beanplot"))`
-  - canprot - needed for `Zc()`, `read_fasta()`, and `Cost()`
-  - CHNOSZ - needed for `protein.formula()`, `as.chemical.formula()`, and `expr.species()`
-  - plotrix - needed for `smoothColors()` and `gradient.rect()`
-  - beanplot - needed for `beanplot()`
+  - canprot - provides `Zc()`, `read_fasta()`, and `Cost()`
+  - CHNOSZ - provides `protein.formula()`, `as.chemical.formula()`, and `expr.species()`
+  - plotrix - provides `smoothColors()` and `gradient.rect()`
+  - beanplot - provides `beanplot()`
+  - ggplot2 - provides plotting functions used in `genoGOE_2()`
+  - patchwork - provides `plot_layout()`
 
 ## Making the plots
 
@@ -21,9 +23,10 @@ genoGOE_1(pdf = TRUE)
 genoGOE_2(pdf = TRUE)
 genoGOE_3(pdf = TRUE)
 genoGOE_4(pdf = TRUE)
+genoGOE_5(pdf = TRUE)
 # Needed for thermodynamic calculations
 library(CHNOSZ)
-genoGOE_5(pdf = TRUE)
+genoGOE_6(pdf = TRUE)
 ```
 
 ## Data sources

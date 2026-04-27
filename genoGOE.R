@@ -415,21 +415,27 @@ genoGOE_4 <- function(pdf = FALSE) {
     plot(c(1, 7), ylim, xaxt = "n", xlab = "", yaxt = "n", ylab = "", yaxs = "i", type = "n", font.lab = 2)
     axis(2, ytick.at, labels = FALSE)
     axis(2, ylabels.at, tick = FALSE)
-    # Loop over organisms in this lineage
+    # Get lineage-average Zc and uncertainty for each modeAge
     ilineage <- which(modeAges$X8 %in% lineages[j])
-    for(i in ilineage) {
-      # Get modeAge and amino acid composition for this organism
+    lineage_vals <- lapply(ilineage, function(i) {
       OSCODE <- refprot$OSCODE[i]
       myaa <- aa[aa$organism == OSCODE, ]
-      modeAge <- myaa$protein
-      # Get Zc for each modeAge
       vals <- canprot::Zc(myaa)
       # Remove Euk+Bacteria (non-phylogenetic age category) 20231210
       vals <- vals[-3]
-      modeAge <- head(modeAge, -1)
-      # Add lines to plot
-      lines(modeAge, vals, col = col[j])
-    }
+      vals
+    })
+    # Get Zc, mean and SD
+    Zc_mat <- do.call(rbind, lineage_vals)
+    Zc_mean <- colMeans(Zc_mat, na.rm = TRUE)
+    Zc_sd <- apply(Zc_mat, 2, stats::sd, na.rm = TRUE)
+
+    # Add single lineage line and error bars
+    mode_ages <- 1:ncol(Zc_mat)
+    lines(mode_ages, Zc_mean, col = col[j], lwd = 2)
+    arrows(mode_ages, Zc_mean - Zc_sd, mode_ages, Zc_mean + Zc_sd,
+      angle = 90, code = 3, length = 0.05, col = col[j]
+    )
     if(j == 1) inset <- c(-0.02, 0.37) else inset <- c(-0.02, 0.22)
     legend("topleft", paste(lineages[j], "genomes", sep = "\n"), bty = "n", inset = inset)
     # Lines for GOE

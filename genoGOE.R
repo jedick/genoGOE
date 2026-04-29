@@ -93,9 +93,9 @@ genoGOE_2 <- function(pdf = FALSE) {
   # Read data
   df <- read.csv("bacdive/cleaned_data_with_Zc.csv", check.names = FALSE)
 
-  # Binary classification of Oxygen tolerance (Anaerobe or Other)
+  # Binary classification of Oxygen tolerance (Anaerobe or Non-anaerobe)
   is_anaerobe <- grepl("anaerobe", df$`oxygen_tolerance.Oxygen tolerance`, ignore.case = TRUE)
-  df$`Oxygen tolerance` <- ifelse(is_anaerobe, "Anaerobe", "Other")
+  df$`Oxygen tolerance` <- ifelse(is_anaerobe, "Anaerobe", "Non-anaerobe")
 
   # Keep only rows with all variables needed for plotting
   plot_df <- subset(
@@ -106,51 +106,51 @@ genoGOE_2 <- function(pdf = FALSE) {
   )
 
   # Scatter: GC content vs temperature with linear fits by Oxygen tolerance
-  p_gc <- ggplot(
+  p_gc <- ggplot2::ggplot(
     plot_df,
-    aes(
+    ggplot2::aes(
       x = `culture_temp.Temperature`,
       y = `GC_content.GC-content`,
       color = `Oxygen tolerance`
     )
   ) +
-    geom_point(alpha = 0.5, size = 1.2) +
-    geom_smooth(method = "lm", se = TRUE, linewidth = 0.8) +
-    theme_minimal() +
-    labs(
+    ggplot2::geom_point(alpha = 0.5, size = 1.2) +
+    ggplot2::geom_smooth(method = "lm", se = TRUE, linewidth = 0.8) +
+    ggplot2::theme_minimal() +
+    ggplot2::labs(
       x = "Culture temperature (°C)",
       y = "GC content (%)",
       color = "Oxygen tolerance",
       title = "A"
     ) +
-    scale_color_manual(values = c("Anaerobe" = "2", "Other" = "4")) +
-    theme(plot.title = element_text(face = "bold"))
+    ggplot2::scale_color_manual(values = c("Anaerobe" = "2", "Non-anaerobe" = "4")) +
+    ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
 
   # Scatter: Zc vs temperature with linear fits by Oxygen tolerance
-  p_zc <- ggplot(
+  p_zc <- ggplot2::ggplot(
     plot_df,
-    aes(
+    ggplot2::aes(
       x = `culture_temp.Temperature`,
       y = Zc,
       color = `Oxygen tolerance`
     )
   ) +
-    geom_point(alpha = 0.5, size = 1.2) +
-    geom_smooth(method = "lm", se = TRUE, linewidth = 0.8) +
-    theme_minimal() +
-    labs(
+    ggplot2::geom_point(alpha = 0.5, size = 1.2) +
+    ggplot2::geom_smooth(method = "lm", se = TRUE, linewidth = 0.8) +
+    ggplot2::theme_minimal() +
+    ggplot2::labs(
       x = "Culture temperature (°C)",
       y = "Zc",
       color = "Oxygen tolerance",
       title = "B"
     ) +
-    scale_color_manual(values = c("Anaerobe" = "2", "Other" = "4")) +
-    theme(plot.title = element_text(face = "bold"))
+    ggplot2::scale_color_manual(values = c("Anaerobe" = "2", "Non-anaerobe" = "4")) +
+    ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
 
   # Arrange plots in a single row with shared legend
-  combined_plot <- p_gc + p_zc + plot_layout(nrow = 1, guides = "collect")
+  combined_plot <- p_gc + p_zc + patchwork::plot_layout(nrow = 1, guides = "collect")
 
-  combined_plot <- combined_plot & theme(legend.position = "bottom")
+  combined_plot <- combined_plot & ggplot2::theme(legend.position = "bottom")
 
   if(pdf) file <- "Figure_2.pdf" else file <- "Figure_2.png"
   ggplot2::ggsave(file, combined_plot, width = 10, height = 4, dpi = 300)
@@ -438,14 +438,14 @@ genoGOE_4 <- function(pdf = FALSE) {
     )
     if(j == 1) inset <- c(-0.02, 0.37) else inset <- c(-0.02, 0.22)
     legend("topleft", paste(lineages[j], "genomes", sep = "\n"), bty = "n", inset = inset)
-    # Lines for GOE
+    # Line for GOE
     lines(c(2.1, 2.5), c(yOE, yOE), lwd = 4, col = 2)
     if(j == 1) {
       # Top axis: GOE and NOE
       mtext("GOE", side = 3, at = 2.3, line = 0.5, font = 2)
       mtext("NOE", side = 3, at = 5, line = 0.5, font = 2)
-      # Lines for NOE
-      lines(c(4.5, 6.5), c(yOE, yOE), lwd = 4, col = "red3")
+      # Line for NOE
+      lines(c(4.5, 6.5), c(yOE, yOE), lwd = 4, col = 2)
       # Divergence times (TimeTree 5)
       Mya <- c(4250, "3500-2600", 1598, 1275, 743, 563, 180)
       # Put Mya labels on bottom of first panel ...
@@ -454,7 +454,7 @@ genoGOE_4 <- function(pdf = FALSE) {
       # ... or top of second panel
       Mya_axis <- 3
       Mya <- c(4250, "3500-2600", 1598, 1275, 642, 528, 523)
-      # Lines for NOE
+      # Line for NOE
       lines(c(4.5, 5.5), c(yOE, yOE), lwd = 4, col = 2)
       # Bottom axis: tick marks and names for shared ancestry
       axis(1, at = 1:7, labels = FALSE)
@@ -582,10 +582,29 @@ genoGOE_5 <- function(pdf = FALSE) {
       2360, 2160, 2140, 1570,
       1200, 932, 624, 0
     )
+    # Uncertainties from Table 1 of Cui et al., 2025
+    uncertainty <- c(
+      200, 200, 200, 210,
+      210, 220, 220, 250,
+      270, 294, 318, 0
+    )
     pch <- rep(19, length(Zc))
     pch[length(pch)] <- 1
-    plot(ages / 1000, Zc, xlim = c(3, 0), xlab = "Age (Ga)", ylab = "", type = "b", ylim = ylim, yaxt = "n", pch = pch)
+    plot(ages / 1000, Zc, xlim = c(3.2, 0), xlab = "Age (Ga)", ylab = "", type = "b", ylim = ylim, yaxt = "n", pch = pch)
+    # Add horizontal age uncertainty bars (age +/- uncertainty)
+    i_err <- uncertainty > 0
+    arrows(
+      (ages[i_err] - uncertainty[i_err]) / 1000, Zc[i_err],
+      (ages[i_err] + uncertainty[i_err]) / 1000, Zc[i_err],
+      angle = 90, code = 3, length = 0.04
+    )
     label_y_axis()
+    # Lines for GOE and NOE
+    yOE <- -0.12
+    lines(c(2.5, 2.2), c(yOE, yOE), lwd = 4, col = 2)
+    text(2.35, yOE - 0.005, "GOE")
+    lines(c(0.8, 0.54), c(yOE, yOE), lwd = 4, col = 2)
+    text(0.67, yOE - 0.005, "NOE")
   }
 
   # Plot Zc for ancestral thioredoxins from Perez-Jimenez et al. (2011)  20250625
@@ -597,20 +616,35 @@ genoGOE_5 <- function(pdf = FALSE) {
     # Calculate Zc
     Zc <- canprot::Zc(aa)
     # Setup plot
-    xlim <- c(4.2, 0)
+    xlim <- c(4.5, 0)
     plot(xlim, range(Zc), xlim = xlim, xlab = "Age (Ga)", ylab = "", type = "n", ylim = ylim, yaxt = "n")
     label_y_axis()
+    # Helper to draw horizontal age uncertainty bars (skip time-zero points)
+    add_age_error_bars <- function(i, yvals) {
+      i_err <- i & !(dat$Age == 0 & dat$Min == 0 & dat$Max == 0)
+      arrows(dat$Min[i_err], yvals[i_err], dat$Max[i_err], yvals[i_err],
+        angle = 90, code = 3, length = 0.04
+      )
+    }
     # Add separate lines for each lineage
     iBac <- dat$Lineage == "Bacteria"
+    add_age_error_bars(iBac, Zc)
     pch <- rep(19, sum(iBac))
     pch[length(pch)] <- 1
     lines(dat$Age[iBac], Zc[iBac], type = "b", pch = pch)
-    text(3, -0.22, "Bacteria")
+    text(3.5, -0.22, "Bacteria")
     iArcEuk <- dat$Lineage == "Arc-Euk"
+    add_age_error_bars(iArcEuk, Zc)
     pch <- rep(15, sum(iArcEuk))
     pch[length(pch)] <- 0
     lines(dat$Age[iArcEuk], Zc[iArcEuk], type = "b", pch = pch)
-    text(3, -0.265, "Archaea+Eukaryota")
+    text(2.5, -0.252, "Archaea+Eukaryota")
+    # Lines for GOE and NOE
+    yOE <- -0.18
+    lines(c(2.5, 2.2), c(yOE, yOE), lwd = 4, col = 2)
+    text(2.35, yOE - 0.006, "GOE")
+    lines(c(0.8, 0.54), c(yOE, yOE), lwd = 4, col = 2)
+    text(0.67, yOE - 0.006, "NOE")
   }
 
   if(pdf) pdf("Figure_5.pdf", width = 9, height = 6)

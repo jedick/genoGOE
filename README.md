@@ -20,12 +20,12 @@ Set `pdf = TRUE` to make PDF files or leave as FALSE (the default) to make plots
 ```R
 source("genoGOE.R")
 genoGOE_1(pdf = TRUE)
+library(patchwork)  # For plot layout
 genoGOE_2(pdf = TRUE)
 genoGOE_3(pdf = TRUE)
 genoGOE_4(pdf = TRUE)
 genoGOE_5(pdf = TRUE)
-# Needed for thermodynamic calculations
-library(CHNOSZ)
+library(CHNOSZ)  # For thermodynamic calculations
 genoGOE_6(pdf = TRUE)
 ```
 

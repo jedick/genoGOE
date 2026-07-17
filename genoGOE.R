@@ -400,8 +400,8 @@ genoGOE_4 <- function(pdf = FALSE) {
   ylabels.at <- c(-0.18, -0.06)
 
   # Loop over lineages
-  col <- c(adjustcolor("blue1", 0.6), adjustcolor("green4", 0.6))
   coltext <- c("blue1", "green4")
+  col <- adjustcolor(coltext, 0.6)
   lineages <- c("Mammalia", "Saccharomyceta")
   for(j in seq_along(lineages)) {
     # Adjust margins and colors
@@ -520,57 +520,6 @@ genoGOE_5 <- function(pdf = FALSE) {
     text(2.9, -0.13, "GOE\n(estimated)")
   }
 
-  # Plot Zc of ancestral and extant nitrogenases from Garcia et al. (2020)  20250325
-  plot_nitrogenase <- function(ylim = c(-0.20, -0.12)) {
-
-    ## Read FASTA file of ancient and extant sequences,
-    ## downloaded from https://github.com/kacarlab/AncientNitrogenase.git
-    #aa <- canprot::read_fasta("GMKK20/Extant-MLAnc_Align.fasta")
-    # Get amino acid sequences precomputed from Extant-MLAnc_Align.fasta
-    aa <- read.csv("GMKK20/nitrogenase_aa.csv")
-
-    # List forms of nitrogenase and their ancestors
-    form_to_anc <- list(
-      "Clfx" = "D",
-      "F-Mc" = "C",
-      "Mb-Mc" = "B",
-      "Anf" = "A",
-      "Vnf" = "A",
-      "Nif-II" = "E",
-      "Nif-I" = "E"
-    )
-
-    # Start plot
-    plot(extendrange(c(1, 7)), c(-0.20, -0.12), xlab = "Form of nitrogenase", ylab = "", type = "n", axes = FALSE, ylim = ylim)
-    axis(side = 1, at = seq_along(form_to_anc), labels = hyphen.in.pdf(names(form_to_anc)), gap.axis = 0)
-    label_y_axis()
-    box()
-
-    # Loop over nitrogenase forms
-    set.seed(42)
-    for(iform in seq_along(form_to_anc)) {
-
-      # Calculate Zc of the ancestral proteins
-      node <- form_to_anc[[iform]]
-      ianc <- grepl(paste0("^Anc", node), aa$protein)
-      Zc_anc <- canprot::Zc(aa[ianc, ])
-      # Plot points with jitter
-      xvals <- jitter(rep(iform, length(Zc_anc)), amount = 0.1)
-      points(xvals, Zc_anc, pch = 19)
-
-      # Calculate Zc of the extant proteins
-      form <- names(form_to_anc[iform])
-      iext <- which(aa$ref == form)
-      Zc_ext <- canprot::Zc(aa[iext, ])
-      xvals <- jitter(rep(iform, length(Zc_ext)), amount = 0.1)
-      points(xvals, Zc_ext)
-
-    }
-
-    # Add legend and title
-    legend("bottomright", c("Extant", "Ancestral"), pch = c(1, 19), bty = "n")
-
-  }
 
   # Plot Zc of IPMDH from Cui et al. (2025)  20250407
   plot_IPMDH <- function(ylim = c(-0.20, -0.12)) {
@@ -667,6 +616,370 @@ genoGOE_5 <- function(pdf = FALSE) {
 
 }
 
+# New version of Figure 5 with stacked Zc plots above O2 profile  20260715 jmd
+genoGOE_5 <- function(pdf = FALSE) {
+  if(pdf) pdf("Figure_5.pdf", width = 8, height = 8)
+  # Setup figure region
+  par(mfrow = c(6, 1))
+  par(mar = c(0, 4.1, 0, 2.1))
+  # Make plots
+  plot_phylostrata()
+  plot_rubisco()
+  plot_nitrogenase()
+  plot_thioredoxin()
+  plot_IPMDH()
+  plot_oxygen()
+  if(pdf) dev.off()
+}
+
+#########################################
+### Supporting functions for Figure 5 ###
+#########################################
+
+plot_phylostrata <- function() {
+  # Gene ages from Liebeskind et al. (2016)
+  datadir <- "LMM16"
+  modeAges <- read.csv(file.path(datadir, "modeAges_names.csv"))
+  # Read list of reference proteomes
+  refprot <- read.csv(file.path(datadir, "reference_proteomes.csv"))
+  # Read summed amino acid compositions for proteins in each modeAge in each organism 20231218
+  aa <- read.csv(file.path(datadir, "modeAges_aa.csv"))
+
+  # Start plot
+  ylim <- c(-0.20, -0.05)
+  xlim <- c(4.5, 0)
+  plot(xlim, ylim, xlim = xlim, xaxt = "n", xlab = "", yaxt = "n", ylab = "", type = "n")
+  axis(1, tcl = 0.5, mgp = c(-3, -1.5, 0))
+  axis(2, seq(-0.20, -0.05, 0.05), labels = FALSE)
+  axis(2, c(-0.20, -0.05), tick = FALSE, las = 1)
+
+  # Lineage names, node ages, and colors
+  lineages <- c("Mammalia", "Saccharomyceta")
+  ages_Mya <- list(
+    c(4250, mean(c(3500, 2600)), 1598, 1275, 743, 563, 180),
+    c(4250, mean(c(3500, 2600)), 1598, 1275, 642, 528, 523)
+  )
+  coltext <- c("blue1", "green4")
+  col <- adjustcolor(coltext, 0.6)
+
+  # Loop over lineages
+  for(j in seq_along(lineages)) {
+    # Get lineage-average Zc and uncertainty for each modeAge
+    ilineage <- which(modeAges$X8 %in% lineages[j])
+    lineage_vals <- lapply(ilineage, function(i) {
+      OSCODE <- refprot$OSCODE[i]
+      myaa <- aa[aa$organism == OSCODE, ]
+      vals <- canprot::Zc(myaa)
+      # Remove Euk+Bacteria (non-phylogenetic age category) 20231210
+      vals <- vals[-3]
+      vals
+    })
+    # Get Zc, mean and SD
+    Zc_mat <- do.call(rbind, lineage_vals)
+    Zc_mean <- colMeans(Zc_mat, na.rm = TRUE)
+    Zc_sd <- apply(Zc_mat, 2, stats::sd, na.rm = TRUE)
+
+    # Add single lineage line and error bars
+    ages_Gya <- ages_Mya[[j]] / 1000
+    lines(ages_Gya, Zc_mean, col = col[j], type = "b", pch = substr(lineages[j], 1, 1))
+    arrows(ages_Gya, Zc_mean - Zc_sd, ages_Gya, Zc_mean + Zc_sd,
+      angle = 90, code = 3, length = 0.05, col = col[j]
+    )
+  }
+
+  # Add legend
+  legend("topright", lineages, pch = substr(lineages, 1, 1), col = coltext, bty = "n")
+  # Add axis labels and title
+  mtext("Zc", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2)
+  mtext("Age (Ga)", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("Gene age groups", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("(Phylostrata: Liebeskind et al., 2016)", side = 3, line = -1.5, adj = 0.25, cex = par("cex") * 1.2)
+
+}
+
+# Plot Zc of rubisco from Kacar et al. (2017)  20240407
+plot_rubisco <- function() {
+  # Read amino acid compositions
+  fasta_file <- "KHAB17/rubisco.fasta"
+  aa <- canprot::read_fasta(fasta_file)
+  # Assign protein names
+  aa$protein <- sapply(strsplit(aa$protein, "_"), "[", 2)
+
+  # Branch lengths from Fig. 4 of Kacar et al. (2017) (root node at zero)
+  # Root node, Anc. I/II/III, Anc. I/III, Anc. I/III', Anc. I, Anc. IB, Anc. IAB, Nostoc-Anabaena split
+  aa_sub <- c(0, 0.34, 0.59, 0.69, 1.63, 1.91, 1.95, 2.06)
+  # Transform branch length to time (linear model)
+  # Age of Rubisco ca. 3.8 Gya - Taylor-Kearney et al., 2024
+  # Nostoc-Anabaena split median 1373 Mya, adjusted 1670 Mya - TimeTree accessed on 2026-07-15
+  sub <- c(head(aa_sub, 1), tail(aa_sub, 1))
+  age <- c(3.8, 1.373)
+  sub2age <- lm(age ~ sub)
+  # Predict ages from branch lengths for ancestral sequences
+  ages <- predict(sub2age, newdata = data.frame(sub = head(tail(aa_sub, -1), -1)))
+  # Make inverse model to get tick labels
+  age2sub <- lm(sub ~ age)
+
+  # Get Zc values
+  Zc_vals <- canprot::Zc(aa)
+
+  # Start plot
+  ylim <- c(-0.20, -0.10)
+  xlim <- c(4.5, 0)
+  plot(xlim, ylim, xlim = xlim, xaxt = "n", xlab = "", yaxt = "n", ylab = "", type = "n")
+  # Put labels at the Rubisco age and whole Gya after that
+  at <- c(3.8, 3, 2, 1)
+  labels <- round(predict(age2sub, newdata = data.frame(age = at)), 1)
+  axis(1, at = at, labels = labels, tcl = 0.5, mgp = c(-3, -1.5, 0))
+  axis(2, seq(-0.20, -0.10, 0.05), labels = FALSE)
+  axis(2, c(-0.20, -0.10), tick = FALSE, las = 1)
+
+  # Plot main branch (excluding Anc I/III')
+  lines(ages[-3], Zc_vals[-3], type = "b", pch = 19)
+  # Add point for Anc I/III'
+  points(ages[3], Zc_vals[3], pch = 19, col = 8)
+  # Add text labels
+  text(ages[1:4], Zc_vals[1:4] + 0.007, aa$protein[1:4])
+  text(ages[5], Zc_vals[5] + 0.007, aa$protein[5], adj = 1)
+  text(ages[6], Zc_vals[6] - 0.007, aa$protein[6], adj = 0)
+
+  # Add legend
+  legend("topright", legend = "Linear age model\nRelative ages only", bty = "n", text.font = 3, cex = 1.2)
+  # Add axis labels and title
+  mtext("Zc", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2)
+  mtext("aa subs/site", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("Rubisco large subunit", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("(RAS data: Kacar et al., 2017)", side = 3, line = -1.5, adj = 0.30, cex = par("cex") * 1.2)
+}
+
+# Plot Zc for ancestral and modern nitrogenases from Cuevas Zuviría et al. (2025)  20260715
+plot_nitrogenase <- function() {
+  # Directory with FASTA files
+  seq_dir <- "CDA+25"
+  # Start of file name
+  file_start <- "AGNifAlign105.ext-anc.alt"
+  # Subunit names
+  subunits <- c("D", "K", "H")
+  # Node names (oldest to youngest)
+  nodes <- c("1206_map", "1207_map", "1209_map", "1224_map", "Nif_Azotobacter_vinelandii")
+
+  # Branch lengths from Fig. 3 of Cuevas Zuviría et al. (2025) (root node at zero)
+  # Node substitutions (aa/site)
+  # Root node, Anc1206, Anc1207, Anc1209, Anc1224, A. vinelandii
+  aa_sub <- c(0, 0.23, 0.71, 0.93, 1.04, 1.76)
+
+  # Transform branch length to time (linear model)
+  # ca. 3.2 Gya for nitrogenase and 2.5 Gya for Anc1 - Cuevas Zuviría et al.
+  sub <- c(0, 1.04)
+  age <- c(3.2, 2.5)
+  sub2age <- lm(age ~ sub)
+  # Predict ages from branch lengths for ancestral and modern sequences
+  ages <- predict(sub2age, newdata = data.frame(sub = tail(aa_sub, -1)))
+  # Make inverse model to get tick labels
+  age2sub <- lm(sub ~ age)
+
+  # Start plot
+  ylim <- c(-0.20, -0.12)
+  xlim <- c(4.5, 0)
+  plot(xlim, ylim, xlim = xlim, xaxt = "n", xlab = "", yaxt = "n", ylab = "", type = "n")
+  # Put labels at the nitrogenase age and whole Gya after that
+  at <- c(3.2, 3, 2)
+  labels <- round(predict(age2sub, newdata = data.frame(age = at)), 1)
+  axis(1, at = at, labels = labels, tcl = 0.5, mgp = c(-3, -1.5, 0))
+  axis(2, seq(-0.20, -0.12, 0.04), labels = FALSE)
+  axis(2, c(-0.20, -0.12), tick = FALSE, las = 1)
+
+  # Get Zc and nC at nodes for each subunit
+  Zc_list <- nC_list <- vector("list", 3)
+  for(i in 1:length(subunits)) {
+    # Load amino acid composition from FASTA file
+    fasta_file <- file.path(seq_dir, paste(file_start, subunits[i], "fasta", sep = "."))
+    aa <- read_fasta(fasta_file)
+    # Find the node names in the data frame
+    iaa <- match(nodes, aa$protein)
+    node_aa <- aa[iaa, ]
+    # Calculate Zc and nC
+    Zc_list[[i]] <- Zc(node_aa)
+    nC_list[[i]] <- nC(node_aa)
+    # Plot data points
+    lines(ages, Zc_list[[i]], type = "b", pch = subunits[i])
+  }
+
+  ## Calculate mean Zc for DDKK (stoichiometry of Nif-I complex)
+  #Zc_DDKK <- (Zc_list[[1]] * nC_list[[1]] + Zc_list[[2]] * nC_list[[2]]) / (nC_list[[1]] + nC_list[[2]])
+  ## Plot points for DDKK
+  #lines(ages, Zc_DDKK, type = "b", pch = 19)
+
+  # Add legend
+  legend("topright", legend = "Linear age model\nRelative ages only", bty = "n", text.font = 3, cex = 1.2)
+  # Add axis labels and title
+  mtext("Zc", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2)
+  mtext("aa subs/site", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("Nitrogenase subunits", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("(RAS data: Cuevas Zuviría et al., 2025)", side = 3, line = -1.5, adj = 0.32, cex = par("cex") * 1.2)
+}
+
+# Plot Zc for ancestral thioredoxins from Perez-Jimenez et al. (2011)  20250625
+plot_thioredoxin <- function() {
+  # Read data file with ages and PDB IDs from Del Galdo et al. (2019)
+  dat <- read.csv("PIZ+11/DAAD19.csv")
+  # Read amino acid compositions
+  aa <- canprot::read_fasta("PIZ+11/thioredoxin.fasta")
+  # Calculate Zc
+  Zc <- canprot::Zc(aa)
+
+  # Start plot
+  ylim <- c(-0.30, -0.15)
+  xlim <- c(4.5, 0)
+  plot(xlim, ylim, xlim = xlim, xaxt = "n", xlab = "", yaxt = "n", ylab = "", type = "n")
+  axis(1, tcl = 0.5, mgp = c(-3, -1.5, 0))
+  axis(2, seq(-0.30, -0.15, 0.05), labels = FALSE)
+  axis(2, c(-0.30, -0.15), tick = FALSE, las = 1)
+
+  # Helper to draw horizontal age uncertainty bars (skip time-zero points)
+  add_age_error_bars <- function(i, yvals) {
+    i_err <- i & !(dat$Age == 0 & dat$Min == 0 & dat$Max == 0)
+    arrows(dat$Min[i_err], yvals[i_err], dat$Max[i_err], yvals[i_err],
+      angle = 90, code = 3, length = 0.04
+    )
+  }
+  # Add separate lines for each lineage
+  iBac <- dat$Lineage == "Bacteria"
+  add_age_error_bars(iBac, Zc)
+  pch <- rep(19, sum(iBac))
+  pch[length(pch)] <- 1
+  lines(dat$Age[iBac], Zc[iBac], type = "b", pch = pch)
+  text(3.5, -0.22, "Bacteria")
+  iArcEuk <- dat$Lineage == "Arc-Euk"
+  add_age_error_bars(iArcEuk, Zc)
+  pch <- rep(15, sum(iArcEuk))
+  pch[length(pch)] <- 0
+  lines(dat$Age[iArcEuk], Zc[iArcEuk], type = "b", pch = pch)
+  text(2.5, -0.26, "Archaea+Eukaryota")
+
+  # Add axis labels and title
+  mtext("Zc", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2)
+  mtext("Age (Ga)", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("Thioredoxin", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext(CHNOSZ::hyphen.in.pdf("(RAS data: Perez-Jimenez et al., 2011)"), side = 3, line = -1.5, adj = 0.19, cex = par("cex") * 1.2)
+}
+
+# Plot Zc of IPMDH from Cui et al. (2025)  20250407
+plot_IPMDH <- function() {
+  aa <- canprot::read_fasta("CDY+25/IPMDH.fasta")
+  Zc <- canprot::Zc(aa)
+  # Ages from Table 1 of Cui et al., 2025
+  ages <- c(
+    2980, 2960, 2910, 2590,
+    2360, 2160, 2140, 1570,
+    1200, 932, 624, 0
+  )
+  # Uncertainties from Table 1 of Cui et al., 2025
+  uncertainty <- c(
+    200, 200, 200, 210,
+    210, 220, 220, 250,
+    270, 294, 318, 0
+  )
+  pch <- rep(19, length(Zc))
+  pch[length(pch)] <- 1
+
+  # Start plot
+  ylim <- c(-0.20, -0.12)
+  xlim <- c(4.5, 0)
+  plot(xlim, ylim, xlim = xlim, xaxt = "n", xlab = "", yaxt = "n", ylab = "", type = "n")
+  axis(1, tcl = 0.5, mgp = c(-3, -1.5, 0))
+  axis(2, seq(-0.20, -0.12, 0.04), labels = FALSE)
+  axis(2, c(-0.20, -0.12), tick = FALSE, las = 1)
+
+  # Add points
+  points(ages / 1000, Zc, type = "b", pch = pch)
+
+  # Add horizontal age uncertainty bars (age +/- uncertainty)
+  i_err <- uncertainty > 0
+  arrows(
+    (ages[i_err] - uncertainty[i_err]) / 1000, Zc[i_err],
+    (ages[i_err] + uncertainty[i_err]) / 1000, Zc[i_err],
+    angle = 90, code = 3, length = 0.04
+  )
+
+  # Add axis labels and title
+  mtext("Zc", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2)
+  mtext("Age (Ga)", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("IPMDH", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("(RAS: Cui et al., 2025)", side = 3, line = -1.5, adj = 0.10, cex = par("cex") * 1.2)
+}
+
+# Plot O2 curve from Lyons et al. (2024)  20260716
+plot_oxygen <- function() {
+  # Ribbon color
+  col <- "#3E7CB1"
+
+  # Start plot
+  xlim <- c(4.5, 0)
+  ylim <- c(-6, 0.2)
+  plot(xlim, ylim, xlim = xlim, xaxt = "n", xlab = "", yaxt = "n", ylab = "", type = "n")
+  axis(1, tcl = 0.5, mgp = c(-3, -1.5, 0))
+  axis(2, seq(-4, 0, 1), labels = FALSE)
+  axis(2, c(-4, -2, 0), tick = FALSE, las = 1)
+  # Ticks below breaks in scale
+  axis(2, c(-5, -5.75), labels = c(-7, -13), las = 1)
+  # Scale break marks
+  text(par("usr")[1], -4.6, "~", xpd = NA, cex = 1.5, srt = 15)
+  text(par("usr")[1], -5.5, "~", xpd = NA, cex = 1.5, srt = 15)
+
+  # Archean
+  lines(c(4, 3), c(-5.6, -5.6), col = col, lwd = 15)
+  lines(c(3, 2.45), c(-5, -5), col = col, lwd = 15)
+
+  # Plot smooth line with spline function
+  smoothline <- function(x, y, x_vals, lwd = 10, lty = 1, rev = FALSE) {
+    # x, y - x and y data
+    # x_vals - x values for plotting
+    spline_fun <- splinefun(x, y, method = "monoH.FC")
+    y_vals <- spline_fun(x_vals)
+    lines(x_vals, y_vals, col = col, lwd = lwd, lty = lty)
+  }
+
+  # GOE
+  GOE_x <- c(2.431, 2.428, 2.416, 2.393, 2.373, 2.342, 2.312, 2.274, 2.236, 2.186, 2.15, 2.08, 2.021)
+  GOE_y <- c(-5.114, -4.734, -4.152, -3.62, -3.316, -3.038, -2.81, -2.633, -2.506, -2.405, -2.354, -2.354, -2.354)
+  smoothline(GOE_x, GOE_y, seq(2.43, 2.02, length.out = 20))
+
+  # Overshoot
+  OS_x <- c(2.177, 2.171, 2.163, 2.158, 2.15, 2.135, 2.107, 2.085, 2.075, 2.067, 2.054, 2.047, 2.034)
+  OS_y <- c(-2, -1.62, -1.241, -0.861, -0.481, -0.101, 0, -0.354, -0.734, -1.139, -1.519, -1.899, -2.076)
+  points(OS_x, OS_y, col = col, pch = 19)
+
+  # Boring Billion
+  #lines(c(2.02, 0.8), c(-2.35, -2.35), col = col, lwd = 25)
+  # Shorten this thick line a bit for better alignment with adjoining (thinner) lines
+  lines(c(1.97, 0.85), c(-2.35, -2.35), col = col, lwd = 25)
+
+  # NOE
+  NOE_x <- c(0.798, 0.793, 0.786, 0.766, 0.743, 0.733, 0.71, 0.687)
+  NOE_y <- c(-2.127, -1.392, -1.038, -1.013, -1.19, -1.367, -1.544, -1.62)
+  smoothline(NOE_x, NOE_y, seq(0.8, 0.69, length.out = 20))
+
+  # Post-NOE
+  lines(c(0.68, 0.42), c(-1.62, -1.62), col = col, lwd = 10)
+
+  # POE
+  POE_x <- c(0.422, 0.402, 0.387, 0.369, 0.321, 0.28, 0.232, 0.21, 0.144, 0.091, 0.033, 0.003)
+  POE_y <- c(-1.595, -1.392, -1.089, -0.506, -0.127, 0.152, -0.051, -0.051, -0.152, 0.025, -0.076, 0.025)
+  smoothline(POE_x, POE_y, seq(0.42, 0, length.out = 40))
+
+  # Add axis labels and title
+  mtext(quote(bolditalic(p)*bold(O[2])), side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2, padj = -2.3)
+  mtext(quote(bold("("*log[10])), side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2, adj = 0.9, padj = 0)
+  mtext("PAL)", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2, padj = 1.3)
+  mtext("Age (Ga)", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("Oxygen", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("(Model: Lyons et al., 2024)", side = 3, line = -1.5, adj = 0.12, cex = par("cex") * 1.2)
+}
+
+#####################################
+### End of functions for Figure 5 ###
+#####################################
+
 # Figure 6: Relative stabilities of proteins as a function of environmental variables
 genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
 
@@ -719,8 +1032,8 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
       }
     }
 
-    text(5.5, 0.67, hyphen.in.pdf("Higher affinity\nfor post-GOE protein\nin each pair"), cex = 0.8)
-    text(4.8, -0.15, hyphen.in.pdf("Higher affinity for\npre-GOE protein in each pair"), cex = 0.8, srt = -37)
+    text(5.5, 0.67, CHNOSZ::hyphen.in.pdf("Higher affinity\nfor post-GOE protein\nin each pair"), cex = 0.8)
+    text(4.8, -0.15, CHNOSZ::hyphen.in.pdf("Higher affinity for\npre-GOE protein in each pair"), cex = 0.8, srt = -37)
     title("Pairwise Rubiscos", font.main = 1)
     if(is.null(panel)) label.figure("A", cex = 1.5, font = 2, yfrac = 0.936)
 
@@ -737,8 +1050,8 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     groups <- list(pre = c(TRUE, TRUE, TRUE, FALSE, FALSE, FALSE), post = c(FALSE, FALSE, FALSE, TRUE, TRUE, TRUE))
     amean <- agg.affinity(aout, groups = groups)
     diagram(amean, lwd = 2, col = 4, names = "", xlab = "pH", ylab = axis.label("Eh"), balance = 1)
-    text(6, -0.17, hyphen.in.pdf("Higher mean affinity\nfor pre-GOE proteins"), col = 4, font = 2, cex = 0.8, srt = -33)
-    text(6.5, 0.1, hyphen.in.pdf("Higher mean affinity\nfor post-GOE proteins"), col = 4, font = 2, cex = 0.8, srt = -33)
+    text(6, -0.17, CHNOSZ::hyphen.in.pdf("Higher mean affinity\nfor pre-GOE proteins"), col = 4, font = 2, cex = 0.8, srt = -33)
+    text(6.5, 0.1, CHNOSZ::hyphen.in.pdf("Higher mean affinity\nfor post-GOE proteins"), col = 4, font = 2, cex = 0.8, srt = -33)
     title("Groupwise Rubiscos", font.main = 1)
     if(is.null(panel)) label.figure("B", cex = 1.5, font = 2, yfrac = 0.936)
 
@@ -751,8 +1064,8 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
 
     # Label lines
     text(6.8, -61.4, "Rubiscos", cex = 0.8, adj = 0)
-    text(6.5, -61.8, hyphen.in.pdf("Pre-GOE"), cex = 0.75, adj = 1, srt = 30)
-    text(6.5, -60.7, hyphen.in.pdf("Post-GOE"), cex = 0.75, adj = 1, srt = 30)
+    text(6.5, -61.8, CHNOSZ::hyphen.in.pdf("Pre-GOE"), cex = 0.75, adj = 1, srt = 30)
+    text(6.5, -60.7, CHNOSZ::hyphen.in.pdf("Post-GOE"), cex = 0.75, adj = 1, srt = 30)
 
     text(6.8, -67, "Methanogens", cex = 0.8, adj = 0)
     text(6, -67.6, "Class I", cex = 0.75)
@@ -778,7 +1091,7 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     arrows(-0.1, 0.22, -0.1, 0.42, length = 0.2, lwd = 2, col = 7)
     arrows(-0.3, 0.65, -0.3, 0.85, length = 0.2, lwd = 2, col = 4)
     text(0.05, 0.25, "Oxidation in\nmany lineages\naround GOE", adj =0)
-    text(-0.15, 0.75, hyphen.in.pdf("Rubisco transitions\nat more oxidizing\nconditions"), adj = 0)
+    text(-0.15, 0.75, CHNOSZ::hyphen.in.pdf("Rubisco transitions\nat more oxidizing\nconditions"), adj = 0)
     par(opar)
 
   }
@@ -834,8 +1147,8 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     opar <- par(mar = c(4.1, 4.1, 2.1, 2.1), mgp = c(3.1, 1, 0), tcl = -0.5, yaxs = "r")
     n <- length(Zclist)
     boxplot(Zclist, col = col, names = character(n), xlab = "Age of earliest gene event (Ga)", ylab = "Zc of all proteins in genome", ylim = c(-0.25, -0.08))
-    text(2.1, -0.24, hyphen.in.pdf("Sulfate-sulfite-sulfide"), col = dsr)
-    text(2.8, -0.115, hyphen.in.pdf("Sulfate-\nthiosulfate"), col = sox)
+    text(2.1, -0.24, CHNOSZ::hyphen.in.pdf("Sulfate-sulfite-sulfide"), col = dsr)
+    text(2.8, -0.115, CHNOSZ::hyphen.in.pdf("Sulfate-\nthiosulfate"), col = sox)
     text(6.2, -0.22, "Organic sulfur", col = mdd)
     # Ages from Table 2 of Mateos et al.
     ages <- c("3.3-3.35  ", "  2.65-2.88", "2.6", "2.33-2.47", "2.28", "1.77", "0-2.38")
@@ -848,7 +1161,7 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     # Add number of genomes to labels
     n_genomes <- paste0("(", sapply(Zclist, length), ")")
     axis(3, at = 1:n, labels = n_genomes, line = -2, lwd = 0)
-    #title(hyphen.in.pdf("Sulfur-cycling gene or gene cluster"), font.main = 1, line = 3)
+    #title(CHNOSZ::hyphen.in.pdf("Sulfur-cycling gene or gene cluster"), font.main = 1, line = 3)
     par(opar)
   }
 
@@ -886,7 +1199,7 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     if(is.null(panel)) {
       # Add Eh7 axis
       stability_comparison(add = TRUE, pHlim = c(3, 10), Eh7_las = 0, datasets = numeric())
-      title(main = hyphen.in.pdf("All proteins in genomes with specific S-cycling genes"), font.main = 1)
+      title(main = CHNOSZ::hyphen.in.pdf("All proteins in genomes with specific S-cycling genes"), font.main = 1)
       label.figure("E", font = 2, cex = 1.6)
     } else {
       # Only add Eh7 axis
@@ -1032,5 +1345,60 @@ agg.affinity <- function(aout, groups, fun = "mean") {
   aout$species <- aout$species[1:length(groups), ]
   aout$species$name <- names(groups)
   aout
+
+}
+
+
+##################
+### SI Figures ###
+##################
+
+# Plot Zc of ancestral and extant nitrogenases from Garcia et al. (2020)  20250325
+genoGOE_S1 <- function(ylim = c(-0.20, -0.12)) {
+
+  ## Read FASTA file of ancient and extant sequences,
+  ## downloaded from https://github.com/kacarlab/AncientNitrogenase.git
+  #aa <- canprot::read_fasta("GMKK20/Extant-MLAnc_Align.fasta")
+  # Get amino acid sequences precomputed from Extant-MLAnc_Align.fasta
+  aa <- read.csv("GMKK20/nitrogenase_aa.csv")
+
+  # List forms of nitrogenase and their ancestors
+  form_to_anc <- list(
+    "Clfx" = "D",
+    "F-Mc" = "C",
+    "Mb-Mc" = "B",
+    "Anf" = "A",
+    "Vnf" = "A",
+    "Nif-II" = "E",
+    "Nif-I" = "E"
+  )
+
+  # Start plot
+  plot(extendrange(c(1, 7)), c(-0.20, -0.12), xlab = "Form of nitrogenase", xaxt = "n", ylab = "Zc", type = "n", ylim = c(-0.20, -0.12))
+  axis(side = 1, at = seq_along(form_to_anc), labels = CHNOSZ::hyphen.in.pdf(names(form_to_anc)), gap.axis = 0)
+
+  # Loop over nitrogenase forms
+  set.seed(42)
+  for(iform in seq_along(form_to_anc)) {
+
+    # Calculate Zc of the ancestral proteins
+    node <- form_to_anc[[iform]]
+    ianc <- grepl(paste0("^Anc", node), aa$protein)
+    Zc_anc <- canprot::Zc(aa[ianc, ])
+    # Plot points with jitter
+    xvals <- jitter(rep(iform, length(Zc_anc)), amount = 0.1)
+    points(xvals, Zc_anc, pch = 19)
+
+    # Calculate Zc of the extant proteins
+    form <- names(form_to_anc[iform])
+    iext <- which(aa$ref == form)
+    Zc_ext <- canprot::Zc(aa[iext, ])
+    xvals <- jitter(rep(iform, length(Zc_ext)), amount = 0.1)
+    points(xvals, Zc_ext)
+
+  }
+
+  # Add legend and title
+  legend("bottomright", c("Extant", "Ancestral"), pch = c(1, 19), bty = "n")
 
 }

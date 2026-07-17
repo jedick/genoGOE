@@ -1,13 +1,13 @@
 # genoGOE
 
-This repository holds the code and data for "Evolutionary oxidation of proteins in Earth's history".
+This repository holds the code and source data for "Evolutionary oxidation of proteins in Earth's history".
 
 ## Requirements
 
 - R - download from [CRAN](https://cran.r-project.org)
-- R packages - install with `install.packages(c("canprot", "CHNOSZ", "plotrix", "beanplot"))`
+- R packages - install with `install.packages(c("canprot", "CHNOSZ", "plotrix", "beanplot", "ggplot2", "patchwork"))`
   - canprot - provides `Zc()`, `read_fasta()`, and `Cost()`
-  - CHNOSZ - provides `protein.formula()`, `as.chemical.formula()`, and `expr.species()`
+  - CHNOSZ - provides `protein.formula()`, `as.chemical.formula()`, `expr.species()`, and `hyphen.in.pdf()`
   - plotrix - provides `smoothColors()` and `gradient.rect()`
   - beanplot - provides `beanplot()`
   - ggplot2 - provides plotting functions used in `genoGOE_2()`
@@ -73,6 +73,8 @@ genoGOE_6(pdf = TRUE)
 [KHAB17/rubisco.fasta](KHAB17/rubisco.fasta): Reconstructed ancestral Rubisco sequences taken from [Kaçar et al. (2017)](https://doi.org/10.1111/gbi.12243)
 
 [DBCS23](DBCS23): Amino acid compsitions of methanogen and *Nitrososphaeria* genomes used by [Dick et al. (2023)](https://doi.org/10.1111/gbi.12532)
+
+[CDA+25](CDA+25): Sequences for ancestral and modern nitrogenase subunits extracted from FASTA files from [Cuevas Zuviría et al. (2025)](https://doi.org/10.1101/2024.11.18.623660) and from the Protein Data Bank for selected sequences.
 
 ## BacDive analysis
 

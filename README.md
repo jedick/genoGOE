@@ -76,6 +76,10 @@ genoGOE_6(pdf = TRUE)
 
 [CDA+25](CDA+25): Sequences for ancestral and modern nitrogenase subunits extracted from FASTA files from [Cuevas Zuviría et al. (2025)](https://doi.org/10.1101/2024.11.18.623660) and from the Protein Data Bank for selected sequences.
 
+[SGZ+22](SGZ+22): Reconstructed ancestral sequences of Rubisco from Fig. S8 of [Schulz et al. (2022)](https://doi.org/10.1126/science.abq1416).
+
+[ACK25](ACK25): Reconstructed ancestral sequences of Rubisco from the [GitHub repo](https://github.com/kacarlab/RuBisCO_evolution) of [Amritkar et al. (2025)](https://doi.org/10.1093/molbev/msae268).
+
 ## BacDive analysis
 
 See [bacdive/README.md](bacdive/README.md)

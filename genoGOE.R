@@ -863,121 +863,118 @@ plot_oxygen <- function() {
 genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
 
   if(is.null(panel)) {
-    if(pdf) pdf("Figure_6.pdf", width = 12, height = 8)
-    layout(matrix(c(1,1,1,1,1, 2,2,2,2,2, 3,3,3,3,3, 4,4,4,
-                    rep(5, 9), rep(6, 9)), nrow = 2, byrow = TRUE))
+    if(pdf) pdf("Figure_6.pdf", width = 11, height = 9)
+    mat <- matrix(c(1,1,1, 2,2,2, 3,3, 4,4, 5,5, 6,6,6, 7,7,7), nrow = 3, byrow = TRUE)
+    layout(mat)
     par(cex = 1)
   }
-  panels <- if(is.null(panel)) LETTERS[1:7] else panel
+  panels <- if(is.null(panel)) LETTERS[1:8] else panel
 
-  # Read amino acid compositions
-  fasta_file <- "KHAB17/rubisco.fasta"
-  aa <- canprot::read_fasta(fasta_file)
-  # Assign protein names
-  aa$protein <- sapply(strsplit(aa$protein, "_"), "[", 2)
-
-  # Add proteins to CHNOSZ
-  ip <- add.protein(aa, as.residue = TRUE)
-  # Setup basis species and swap O2 for e- to make Eh-pH diagram
-  basis("QEC+")
-  swap.basis("O2", "e-")
-  # Set plot resolution
-  res <- 300
-  
-  # Panel A: Pairwise stability boundaries for Rubisco
-
+  # Panel A: Compare Zc of ancestral Rubisco sequences from different sources  20260717
   if("A" %in% panels) {
-
-    # Loop over individual pairs
-    for(pre in 1:3) {
-      for(post in 4:6) {
-        add <- TRUE
-        if(pre == 1 & post == 4) add <- FALSE
-        a <- affinity(pH = c(0, 14, res), Eh = c(-0.5, 0.8, res), iprotein = ip[c(pre, post)])
-        d <- diagram(a, names = "", lty = 2, col = "#000000b0", add = add, limit.water = !add, fill.NA = "gray80", xlab = "pH", ylab = axis.label("Eh"))
-        # Only label lines for reaction with Anc. I
-        if(post == 4) {
-          # Sort x values and get x and y values of boundary line
-          order <- order(d$linesout[[1]])
-          xs <- d$linesout[[1]][order]
-          ys <- d$linesout[[2]][order]
-          # Get a single value along the length of the line
-          ilab <- floor(length(xs) * pre * 3 / 10)
-          x <- xs[ilab]
-          y <- ys[ilab]
-          text(x, y - 0.03, aa$protein[pre], cex = 0.6)
-          text(x, y + 0.03, aa$protein[post], cex = 0.6)
-        }
-      }
+    # Names of ancestral proteins
+    anc_names <- list(
+      KHAB17 = c("Anc_I/II/III", "Anc_I/III", "Anc_I/III'", "Anc_I", "Anc_IA/B", "Anc_IB"),
+      "SGZ+22" = c("AncL", "AncLS"),
+      ACK25 = c("Anc_I_III", "Anc_I_I-prime", "Anc_I-prime", "Anc_I", "Anc_IAB", "Anc_IB", "Anc_ICD", "Anc_IA")
+    )
+    # Relative ages of ancestral proteins (lower = older)
+    anc_ages <- list(
+      KHAB17 = c(1, 2, 3, 6, 7, 8),
+      "SGZ+22" = c(4, 6),
+      ACK25 = c(2, 4, 5, 6, 7, 8, 9, 10)
+    )
+    # Start plot
+    xlab <- "Ancestral nodes (older to younger)"
+    xlim <- c(1, 10)
+    ylim <- c(-0.20, -0.10)
+    opar <- par(mar = c(5, 4, 1, 1))
+    plot(xlim, ylim, type = "n", xlab = xlab, ylab = "Zc", ylim = ylim, xaxt = "n")
+    all_nodes <- c("I/II/III", "I/III", "I/III'", "I/I'\nAncL", "I'", "I\nAncLS", "IAB", "IB", "ICD", "IA")
+    axis(1, 1:10, all_nodes, padj = 1, mgp = c(3, 0, 0), gap.axis = 0)
+    # Plot Zc of rubisco from Kaçar et al. (2017)  20240407
+    # Read amino acid compositions
+    fasta_file <- "KHAB17/rubisco.fasta"
+    aa <- canprot::read_fasta(fasta_file)
+    # Make sure proteins are ordered as expected
+    stopifnot(all.equal(aa$protein, anc_names$KHAB17))
+    # Get ages
+    ages <- anc_ages$KHAB17
+    # Get Zc values
+    Zc_vals <- canprot::Zc(aa)
+    # Add points
+    lines(ages, Zc_vals, lwd = 2, cex = 1.5, pch = 19, col = 2, type = "b")
+    # Plot Zc for ancestral sequences from Amritkar et al., 2025  20260713
+    seq_dir <- "ACK25"
+    # Get Zc of LSU ancestors
+    Zc_LSU <- numeric()
+    for(LSU_Anc in anc_names$ACK25) {
+      seq_file <- paste0(file.path(seq_dir, LSU_Anc), "_LSU.fasta")
+      # Use read_fasta() to get amino acid composition
+      aa <- canprot::read_fasta(seq_file)
+      # Calculate and save Zc
+      Zc_LSU <- c(Zc_LSU, canprot::Zc(aa))
     }
-
-    text(5.5, 0.67, CHNOSZ::hyphen.in.pdf("Higher affinity\nfor Form I protein\nin each pair"), cex = 0.8)
-    text(4.8, -0.15, CHNOSZ::hyphen.in.pdf("Higher affinity for\nForm I/(II)/III protein in each pair"), cex = 0.8, srt = -37)
-    title("Pairwise Rubiscos", font.main = 1)
-    if(is.null(panel)) label.figure("A", cex = 1.5, font = 2, yfrac = 0.936)
-
+    # Add points
+    ages <- anc_ages$ACK25
+    lines(ages, Zc_LSU, lwd = 2, cex = 1.5, type = "b")
+    # Plot Zc for ancestral sequences from Schulz et al., 2022  20260713
+    aa <- canprot::read_fasta("SGZ+22/sequences.fasta")
+    stopifnot(all.equal(aa$protein, anc_names$"SGZ+22"))
+    Zc_vals <- canprot::Zc(aa)
+    lines(anc_ages$"SGZ+22", Zc_vals, lwd = 2, cex = 1.5, pch = 15, col = 4, type = "b")
+    # Add lines for GOE estimates
+    abline(v = c(3.5, 6.5), lty = 2, lwd = 2, col = 8)
+    text(3.5, -0.19, "GOE\n(Model 1)", adj = 1)
+    text(6.5, -0.19, "GOE\n(Model 2)", adj = 0)
+    ## Add line for Zc separation
+    #abline(h = -0.155, lty = 3, lwd = 2, col = 8)
+    #text(10.3, -0.155, "Form I more oxidized\n\nForm I/II/III more reduced", adj = 1)
+    # Add legend
+    legend("topleft", c("Amritkar", "Schulz", "Kaçar"), pch = c(1, 15, 19), col = c(1, 4, 2), pt.cex = 1.5, bty = "n")
+    label.figure("A", cex = 1.5, font = 2, yfrac = 0.936)
+    par(opar)
   }
 
   if("B" %in% panels) {
-
-    # Panel B: Groupwise stability boundaries for Rubisco
-
-    # Calculate affinity of composition reactions for all proteins
-    aout <- affinity(pH = c(0, 14, res), Eh = c(-0.5, 0.8, res), iprotein = ip)
-    # Set up groups for affinity ranking:
-    # 3 Form I/(II)/III and 3 Form I proteins
-    groups <- list(pre = c(TRUE, TRUE, TRUE, FALSE, FALSE, FALSE), post = c(FALSE, FALSE, FALSE, TRUE, TRUE, TRUE))
-    amean <- agg.affinity(aout, groups = groups)
-    diagram(amean, lwd = 2, col = 4, names = "", xlab = "pH", ylab = axis.label("Eh"), balance = 1)
-    text(6, -0.17, CHNOSZ::hyphen.in.pdf("Higher mean affinity\nfor Form I/(II)/III proteins"), col = 4, font = 2, cex = 0.8, srt = -33)
-    text(6.5, 0.1, CHNOSZ::hyphen.in.pdf("Higher mean affinity\nfor Form I proteins"), col = 4, font = 2, cex = 0.8, srt = -33)
-    title("Groupwise Rubiscos", font.main = 1)
-    if(is.null(panel)) label.figure("B", cex = 1.5, font = 2, yfrac = 0.936)
-
+    # Rubisco relative stability
+    plot_stability("rubisco_1_2", no_names = TRUE)
+    plot_stability("rubisco_2_3", no_names = TRUE, add = TRUE)
+    text(7, -65, "Stage 1")
+    text(7, -62, "Stage 2")
+    text(6, -69, "Stage 2")
+    text(6, -66, "Stage 3")
+    text(4.3, -59.5, "Rubisco", adj = 0, font = 2)
+    label.figure("B", cex = 1.5, font = 2, yfrac = 0.936)
+    title("Retrograde redox potential", font.main = 3)
+    arrows(8, -63.2, 8, -70, length = 0.15)
+    text(8.1, -66.8, "Time", adj = 0, font = 3)
   }
 
   if("C" %in% panels) {
-
-    # Panel D: Comparison between Rubiscos and methanogen and Nitrososphaeria genomes
-    stability_comparison(res = res)
-
-    # Label lines
-    text(6.8, -61.4, "Rubiscos", cex = 0.8, adj = 0)
-    text(6.5, -61.8, "Form I/(II)/III", cex = 0.75, adj = 1, srt = 30)
-    text(6.5, -60.7, "Form I", cex = 0.75, adj = 1, srt = 30)
-
-    text(6.8, -67, "Methanogens", cex = 0.8, adj = 0)
-    text(6, -67.6, "Class I", cex = 0.75)
-    text(6, -66.7, "Class II", cex = 0.75)
-
-    text(6.8, -69.4, "Nitrososphaeria", cex = 0.8, adj = 0, font = 3)
-    text(6, -70.2, "Basal", cex = 0.75)
-    text(6, -69.4, "Terrestrial", cex = 0.75)
-
-    if(is.null(panel)) {
-      title("   Rubiscos and all proteins in genomes", font.main = 1, xpd = NA)
-      label.figure("C", cex = 1.5, font = 2, yfrac = 0.936)
+    arrowfun <- function(y1, y2) {
+      arrows(9.5, y1, 9.5, y2, length = 0.15)
+      text(9.3, y2, "Time", adj = 1, font = 3)
     }
 
-  }
+    plot_stability("nitrogenase")
+    text(4.3, -59.5, "Nitrogenase", adj = 0, font = 2)
+    arrowfun(-69, -63)
+    label.figure("C", cex = 1.5, font = 2, yfrac = 0.936)
 
-  if("D" %in% panels) {
+    plot_stability("thioredoxin")
+    text(4.3, -59.5, "Thioredoxin", adj = 0, font = 2)
+    arrowfun(-72, -66)
+    title("Prograde redox potential", font.main = 3)
 
-    # Add more arrows 20240812
-    plot.new()
-    opar <- par(xpd = NA)
-    arrows(-0.3, 0.08, -0.3, 0.28, length = 0.2, lwd = 2, col = 2)
-    arrows(-0.1, 0.22, -0.1, 0.42, length = 0.2, lwd = 2, col = 7)
-    arrows(-0.3, 0.65, -0.3, 0.85, length = 0.2, lwd = 2, col = 4)
-    text(0.05, 0.25, "Oxidation in\nmany lineages\naround GOE", adj =0)
-    text(-0.15, 0.75, CHNOSZ::hyphen.in.pdf("Rubisco transitions\nat more oxidizing\nconditions"), adj = 0)
-    par(opar)
-
+    plot_stability("IPMDH")
+    text(4.3, -59.5, "IPMDH", adj = 0, font = 2)
+    arrowfun(-69, -63)
   }
 
   # Evolutionary oxidation and relative stabilities for genomes with S-cycling genes 20241211
   # genoGOE/sulfur_genomes.R
-  # 20241211 add Eh-pH affinity ranking
+  # 20241211 add Eh-pH affinity aggregation
   # 20241223 convert to logfO2-pH
 
   # List genomes with single sulfur-cycling genes
@@ -1044,7 +1041,7 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     par(opar)
   }
 
-  # Affinity ranking for genomes with different S-cycling genes
+  # Mean affinities for genomes with different S-cycling genes
   sulfur_affinity <- function(panel) {
     if(is.null(panel)) par(mar = c(4.1, 4.1, 2.1, 4.1), mgp = c(2.5, 1, 0))
     basis("QEC+")
@@ -1056,7 +1053,7 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     a <- affinity(pH = c(3, 10, res), O2 = c(-72.5, -58, res), iprotein = ip)
     # Group genomes according to presence of sulfur-cycling genes
     groups <- sapply(genomes, function(genome) match(genome, myaa$organism))
-    # Calculate normalized sum of ranks for each group and make diagram
+    # Calculate mean affinities for each group and make diagram
     amean <- agg.affinity(a, groups)
     # Lighten colors
     fill <- adjustcolor(col, alpha.f = 0.3)
@@ -1069,89 +1066,189 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     diagram(amean, fill = fill, lty = 1, lwd = 2, font = 3, names = names, cex.names = 0.8, dx = dx, dy = dy, col = "gray20", balance = 1)
   }
 
-  if("D" %in% panels) {
+  if("F" %in% panels) {
     sulfur_Zc()
-    if(is.null(panel)) label.figure("D", font = 2, cex = 1.6)
+    if(is.null(panel)) label.figure("F", font = 2, cex = 1.6)
   }
-  if("E" %in% panels) {
+  if("G" %in% panels) {
     sulfur_affinity(panel)
-    if(is.null(panel)) {
-      # Add Eh7 axis
-      stability_comparison(add = TRUE, pHlim = c(3, 10), Eh7_las = 0, datasets = numeric())
-      title(main = CHNOSZ::hyphen.in.pdf("All proteins in genomes with specific S-cycling genes"), font.main = 1)
-      label.figure("E", font = 2, cex = 1.6)
-    } else {
-      # Only add Eh7 axis
-      stability_comparison(res = res, add = TRUE, Eh7_las = 0, datasets = numeric())
-    }
+    # Add Eh7 axis
+    add_Eh7_axis(las = 0)
+    title(main = CHNOSZ::hyphen.in.pdf("All proteins in genomes with specific S-cycling genes"), font.main = 1)
+    label.figure("G", font = 2, cex = 1.6)
   }
 
   if(pdf & is.null(panel)) dev.off()
 
 }
 
-# Comparison of Rubiscos and methanogen and Nitrososphaeria genomes
-stability_comparison <- function(res = 400, add = FALSE, lwd = 2, lty = 1, pHlim = c(4, 10), O2lim = c(-72.5, -58), alpha.f = 1, Eh7_las = 1, datasets = 1:3) {
+# Relative stability diagrams for reconstructed ancestral proteins 20260721
+plot_stability <- function(dataset = "rubisco", res = 200, pHlim = c(4, 10), O2lim = c(-72.5, -58), add = FALSE, no_names = FALSE) {
 
   # Setup basis species
   basis("QEC+")
 
-  for(i in datasets) {
+  if(dataset == "methanogen_old") {
+    # Methanogen proteomes 20220424
+    # Read amino acid composition and compute Zc
+    aa <- read.csv("DBCS23/methanogen_AA.csv")
+    # Indices of Class I and Class II methanogens
+    iI <- 20:36
+    iII <- 1:19
+    # Get the species in each group
+    groups <- list("Class I" = iI, "Class II" = iII)
+    col <- 7
+  }
 
-    if(i == 1) {
-      # Methanogen proteomes 20220424
-      # Read amino acid composition and compute Zc
-      aa <- read.csv("DBCS23/methanogen_AA.csv")
-      # Indices of Class I and Class II methanogens
-      iI <- 20:36
-      iII <- 1:19
-      # Get the species in each group
-      groups <- list("Class I" = iI, "Class II" = iII)
-      col <- 7
-      add <- add
-    }
+  if(dataset == "thaumarchaeota_old") {
+    # Thaumarchaeota (now Nitrososphaeria) 20220414
+    # Amino acid compositions of predicted (Glimmer) and database (NCBI or IMG) proteomes
+    predicted <- read.csv("DBCS23/Thaumarchaeota_predicted_AA.csv")
+    database <- read.csv("DBCS23/Thaumarchaeota_database_AA.csv")
+    # If both are available, use predicted instead of database
+    aa <- rbind(predicted, database)
+    aa <- aa[!duplicated(aa$organism), ]
+    groupnames <- c("Basal", "Terrestrial", "Shallow", "Deep")
+    # Get the species in each group
+    groups <- sapply(groupnames, function(group) aa$protein == group, simplify = FALSE)
+    # Compare Basal to Terrestrial 20240802
+    groups <- groups[1:2]
+    col <- 2
+  }
 
-    if(i == 2) {
-      # Thaumarchaeota (now Nitrososphaeria) 20220414
-      # Amino acid compositions of predicted (Glimmer) and database (NCBI or IMG) proteomes
-      predicted <- read.csv("DBCS23/Thaumarchaeota_predicted_AA.csv")
-      database <- read.csv("DBCS23/Thaumarchaeota_database_AA.csv")
-      # If both are available, use predicted instead of database
-      aa <- rbind(predicted, database)
-      aa <- aa[!duplicated(aa$organism), ]
-      groupnames <- c("Basal", "Terrestrial", "Shallow", "Deep")
-      # Get the species in each group
-      groups <- sapply(groupnames, function(group) aa$protein == group, simplify = FALSE)
-      # Compare Basal to Terrestrial 20240802
-      groups <- groups[1:2]
-      col <- 2
-      add <- TRUE
-    }
+  if(dataset == "rubisco_old") {
+    # Rubisco 20240802
+    # Read amino acid compositions
+    fasta_file <- "KHAB17/rubisco.fasta"
+    aa <- canprot::read_fasta(fasta_file)
+    # Assign protein names
+    aa$protein <- sapply(strsplit(aa$protein, "_"), "[", 2)
+    # Set up groups for affinity aggregation:
+    # 3 Form I/(II)/III and 3 Form I proteins (possibly pre-GOE and post-GOE)
+    groups = list(
+      pre = c(TRUE, TRUE, TRUE, FALSE, FALSE, FALSE),
+      post = c(FALSE, FALSE, FALSE, TRUE, TRUE, TRUE)
+    )
+    col <- 4
+  }
 
-    if(i == 3) {
-      # Rubisco 20240802
-      # Read amino acid compositions
-      fasta_file <- "KHAB17/rubisco.fasta"
-      aa <- canprot::read_fasta(fasta_file)
-      # Assign protein names
-      aa$protein <- sapply(strsplit(aa$protein, "_"), "[", 2)
-      # Set up groups for affinity ranking:
-      # 3 Form I/(II)/III and 3 Form I proteins
-      groups = list(pre = c(TRUE, TRUE, TRUE, FALSE, FALSE, FALSE), post = c(FALSE, FALSE, FALSE, TRUE, TRUE, TRUE))
-      col <- 4
-      add <- TRUE
-    }
+  if(dataset %in% c("rubisco", "rubisco_1_2", "rubisco_2_3")) {
 
-    # Make affinity ranking plot 20220602
-    # Load proteins and calculate affinity
-    ip <- add.protein(aa, as.residue = TRUE)
-    aout <- affinity(pH = c(pHlim, res), O2 = c(O2lim, res), iprotein = ip)
-    # Calculate average ranking for each group and make diagram
-    amean <- agg.affinity(aout, groups)
-    diagram(amean, col = adjustcolor(col, alpha.f = alpha.f), lwd = lwd, lty = lty, add = add, names = "", balance = 1)
+    # Stages of Rubisco evolution using multiple datasets 20260721
+    # Protein names in FASTA files
+    anc_names <- list(
+      KHAB17 = c("Anc_I/II/III", "Anc_I/III", "Anc_I/III'", "Anc_I", "Anc_IA/B", "Anc_IB"),
+      "SGZ+22" = c("AncL", "AncLS"),
+      ACK25 = c("Anc_I_III", "Anc_I_I-prime", "Anc_I-prime", "Anc_I", "Anc_IAB", "Anc_IB", "Anc_ICD", "Anc_IA")
+    )
+    # Evolutionary stages
+    anc_ages <- list(
+      KHAB17 = c(1, 1, 1, 2, 3, 3),
+      "SGZ+22" = c(2, 2),
+      ACK25 = c(1, 2, 2, 2, 3, 3, 3, 3)
+    )
+
+    # Dataset 1: Kacar et al., 2017
+    aa1 <- canprot::read_fasta("KHAB17/rubisco.fasta")
+    stopifnot(all.equal(aa1$protein, anc_names$KHAB17))
+    # Dataset 2: Schulz et al., 2022
+    aa2 <- canprot::read_fasta("SGZ+22/sequences.fasta")
+    stopifnot(all.equal(aa2$protein, anc_names$"SGZ+22"))
+    # Dataset 3: Amritkar et al., 2025
+    aa3_list <- lapply(anc_names$ACK25, function(LSU_Anc){
+      seq_file <- paste0(file.path("ACK25", LSU_Anc), "_LSU.fasta")
+      canprot::read_fasta(seq_file)
+    })
+    aa3 <- do.call(rbind, aa3_list)
+    aa3$protein <- gsub("_LSU", "", aa3$organism)
+    aa3$organism <- "LSU"
+    stopifnot(all.equal(aa3$protein, anc_names$ACK25))
+
+    # Check that all protein-organism pairs are unique 
+    # (so that none are dropped by add.protein())
+    aa <- rbind(aa1, aa2, aa3)
+    stopifnot(!any(duplicated(paste(aa$protein, aa$organism, sep = "_"))))
+
+    # Set up groups for affinity aggregation
+    groups = list(
+      "Stage 1" = aa$protein %in% c("Anc_I/II/III", "Anc_I/III", "Anc_I/III'", "Anc_I_III"),
+      "Stage 2" = aa$protein %in% c("Anc_I", "AncL", "AncLS", "Anc_I_I-prime", "Anc_I-prime", "Anc_I"),
+      "Stage 3" = aa$protein %in% c("Anc_IA/B", "Anc_IB", "Anc_IAB", "Anc_IB", "Anc_ICD", "Anc_IA")
+    )
+    if(dataset == "rubisco_1_2") groups <- groups[1:2]
+    if(dataset == "rubisco_2_3") groups <- groups[2:3]
+    col <- 4
 
   }
 
+  if(dataset == "IPMDH") {
+    # IPMDH stages 20260721
+    # Read amino acid compositions
+    aa <- canprot::read_fasta("CDY+25/IPMDH.fasta")
+    # Set up groups for affinity aggregation
+    groups = list(
+      "Stage 1" = aa$protein %in% c("Anc01", "Anc02", "Anc03", "Anc04"),
+      "Stage 2" = aa$protein %in% c("Anc05", "Anc06", "Anc07", "Anc08"),
+      "Stage 3" = aa$protein %in% c("Anc09", "Anc10", "Anc11"),
+      "Stage 4" = aa$protein %in% c("EcIPMDH")
+    )
+    col <- 4
+  }
+
+  if(dataset == "nitrogenase") {
+    # Start of file name
+    file_start <- "AGNifAlign105.ext-anc.alt"
+    # Get amino acid composition for ancestral proteins for each subunit
+    aa_D <- read_fasta(file.path("CDA+25", paste(file_start, "D.fasta", sep = ".")))
+    aa_K <- read_fasta(file.path("CDA+25", paste(file_start, "K.fasta", sep = ".")))
+    aa <- rbind(aa_D, aa_K)
+    groups = list(
+      "Stage 1" = aa$protein %in% c("1206_map", "1207_map"),
+      "Stage 2" = aa$protein %in% c("1209_map", "1224_map"),
+      "Stage 3" = aa$protein %in% c("Nif_Azotobacter_vinelandii")
+    )
+    col <- 5
+  }
+
+  if(dataset %in% c("thioredoxin", "thioredoxin_A", "thioredoxin_B", "thioredoxin_B_1_2", "thioredoxin_B_2_3")) {
+
+    # Read data file with ages and PDB IDs from Del Galdo et al. (2019)
+    dat <- read.csv("PIZ+11/DAAD19.csv")
+    # Read amino acid compositions
+    aa <- canprot::read_fasta("PIZ+11/thioredoxin.fasta")
+    stopifnot(all.equal(sapply(strsplit(aa$protein, "_"), "[", 1), dat$PDB))
+    aa$protein <- dat$name
+    # Subset Arc-Euk and Bacteria
+    if(dataset == "thioredoxin_A") aa <- aa[dat$Lineage == "Arc-Euk", ]
+    if(dataset == "thioredoxin_B") aa <- aa[dat$Lineage == "Bacteria", ]
+    groups = list(
+      "Stage 1" = aa$protein %in% c("LBCA", "AECA", "LACA"),
+      "Stage 2" = aa$protein %in% c("LPBCA"),
+      "Stage 3" = aa$protein %in% c("LGPCA", "LECA", "LAFCA"),
+      "Stage 4" = aa$protein %in% c("Ecoli", "Human")
+    )
+    if(dataset == "thioredoxin_B_1_2") groups <- groups[1:2]
+    if(dataset == "thioredoxin_B_2_3") groups <- groups[2:3]
+    col <- 6
+
+  }
+
+  # Make affinity plot 20220602
+  # Load proteins and calculate affinity
+  ip <- add.protein(aa, as.residue = TRUE)
+  aout <- affinity(pH = c(pHlim, res), O2 = c(O2lim, res), iprotein = ip)
+  # Calculate average affinity for each group and make diagram
+  amean <- agg.affinity(aout, groups)
+  lwd <- 2
+  lty <- 1
+  if(no_names) names <- NA else names <- names(groups)
+  diagram(amean, col = col, lwd = lwd, lty = lty, add = add, balance = 1, names = names, format.names = FALSE)
+
+  #add_Eh7_axis()
+
+}
+
+add_Eh7_axis <- function(las = 1) {
   # Add Eh7 axis 20241218
   # Calculate range of pe at pH = 7
   # H2O = 0.5 O2(gas) + 2 H+ + 2 e- 
@@ -1166,8 +1263,7 @@ stability_comparison <- function(res = 400, add = FALSE, lwd = 2, lty = 1, pHlim
   Eh7ticks <- seq(-0.25, 0.05, 0.05)
   logfO2ticks <- Eh7_to_logfO2(Eh7ticks)
   axis(4, at = logfO2ticks, labels = Eh7ticks, tcl = -0.3, mgp = c(2, 0.5, 0))
-  mtext("Eh7 (V)", 4, line = 3, las = Eh7_las)
-
+  mtext("Eh7 (V)", 4, line = 3, las = las)
 }
 
 # Calculate average affinities for species in different groups
@@ -1227,7 +1323,6 @@ agg.affinity <- function(aout, groups, fun = "mean") {
 
 }
 
-
 ##################
 ### SI Figures ###
 ##################
@@ -1279,6 +1374,72 @@ genoGOE_S1 <- function(ylim = c(-0.20, -0.12)) {
 
   # Add legend and title
   legend("bottomright", c("Extant", "Ancestral"), pch = c(1, 19), bty = "n")
+
+}
+
+# Figure S2: Relative stabilities for Rubisco (pairwise and groupwise affinities)
+genoGOE_S2 <- function(pdf = FALSE) {
+
+  if(pdf) pdf("Figure_S2.pdf", width = 10, height = 4)
+  par(mfrow = c(1, 2))
+
+  # Read amino acid compositions
+  fasta_file <- "KHAB17/rubisco.fasta"
+  aa <- canprot::read_fasta(fasta_file)
+  # Assign protein names
+  aa$protein <- sapply(strsplit(aa$protein, "_"), "[", 2)
+
+  # Add proteins to CHNOSZ
+  ip <- add.protein(aa, as.residue = TRUE)
+  # Setup basis species and swap O2 for e- to make Eh-pH diagram
+  basis("QEC+")
+  swap.basis("O2", "e-")
+  # Set plot resolution
+  res <- 300
+  
+  # Panel A: Pairwise stability boundaries for Rubisco
+  # Loop over individual pairs
+  for(pre in 1:3) {
+    for(post in 4:6) {
+      add <- TRUE
+      if(pre == 1 & post == 4) add <- FALSE
+      a <- affinity(pH = c(0, 14, res), Eh = c(-0.5, 0.8, res), iprotein = ip[c(pre, post)])
+      d <- diagram(a, names = "", lty = 2, col = "#000000b0", add = add, limit.water = !add, fill.NA = "gray80", xlab = "pH", ylab = axis.label("Eh"))
+      # Only label lines for reaction with Anc. I
+      if(post == 4) {
+        # Sort x values and get x and y values of boundary line
+        order <- order(d$linesout[[1]])
+        xs <- d$linesout[[1]][order]
+        ys <- d$linesout[[2]][order]
+        # Get a single value along the length of the line
+        ilab <- floor(length(xs) * pre * 3 / 10)
+        x <- xs[ilab]
+        y <- ys[ilab]
+        text(x, y - 0.03, aa$protein[pre], cex = 0.6)
+        text(x, y + 0.03, aa$protein[post], cex = 0.6)
+      }
+    }
+  }
+
+  text(5.5, 0.67, CHNOSZ::hyphen.in.pdf("Higher affinity\nfor Form I protein\nin each pair"), cex = 0.8)
+  text(4.8, -0.15, CHNOSZ::hyphen.in.pdf("Higher affinity for\nForm I/(II)/III protein in each pair"), cex = 0.8, srt = -37)
+  title("Pairwise Rubiscos", font.main = 1)
+  label.figure("A", cex = 1.5, font = 2, yfrac = 0.936)
+
+  # Panel B: Groupwise stability boundaries for Rubisco
+  # Calculate affinity of composition reactions for all proteins
+  aout <- affinity(pH = c(0, 14, res), Eh = c(-0.5, 0.8, res), iprotein = ip)
+  # Set up groups for affinity aggregation:
+  # 3 Form I/(II)/III and 3 Form I proteins
+  groups <- list(pre = c(TRUE, TRUE, TRUE, FALSE, FALSE, FALSE), post = c(FALSE, FALSE, FALSE, TRUE, TRUE, TRUE))
+  amean <- agg.affinity(aout, groups = groups)
+  diagram(amean, lwd = 2, col = 4, names = "", xlab = "pH", ylab = axis.label("Eh"), balance = 1)
+  text(6, -0.17, CHNOSZ::hyphen.in.pdf("Higher mean affinity\nfor Form I/(II)/III proteins"), col = 4, font = 2, cex = 0.8, srt = -33)
+  text(6.5, 0.1, CHNOSZ::hyphen.in.pdf("Higher mean affinity\nfor Form I proteins"), col = 4, font = 2, cex = 0.8, srt = -33)
+  title("Groupwise Rubiscos", font.main = 1)
+  label.figure("B", cex = 1.5, font = 2, yfrac = 0.936)
+
+  if(pdf) dev.off()
 
 }
 

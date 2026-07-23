@@ -570,8 +570,6 @@ plot_rubisco <- function() {
   # Read amino acid compositions
   fasta_file <- "KHAB17/rubisco.fasta"
   aa <- canprot::read_fasta(fasta_file)
-  # Assign protein names
-  aa$protein <- sapply(strsplit(aa$protein, "_"), "[", 2)
 
   # Branch lengths from Fig. 4 of Kaçar et al. (2017) (root node at zero)
   # Root node, Anc. I/II/III, Anc. I/III, Anc. I/III', Anc. I, Anc. IB, Anc. IAB, Nostoc-Anabaena split
@@ -601,16 +599,20 @@ plot_rubisco <- function() {
   axis(2, seq(-0.20, -0.10, 0.05), labels = FALSE)
   axis(2, c(-0.20, -0.10), tick = FALSE, las = 1)
 
-  # Add points and gray lines
-  points(ages, Zc_vals, pch = 19)
-  lines(ages, Zc_vals, type = "b", pch = NA, col = 8)
+  # Add points and lines
+  pch <- get.stages("rubisco", aa, return.pch = TRUE)
+  points(ages, Zc_vals, pch = pch, bg = "black")
+  lines(ages, Zc_vals, type = "b", pch = NA, col = 3)
+
   # Add text labels
+  aa$protein <- sapply(strsplit(aa$protein, "_"), "[", 2)
   text(ages[1:4], Zc_vals[1:4] + 0.007, aa$protein[1:4])
   text(ages[5], Zc_vals[5] + 0.007, aa$protein[5], adj = 1)
   text(ages[6], Zc_vals[6] - 0.007, aa$protein[6], adj = 0)
 
   # Add legend
   legend("topright", legend = "Linear age model\nRelative ages only", bty = "n", text.font = 3, cex = 1.1)
+  legend("bottomright", legend = paste("Stage", 1:4), pch = c(21, 22, 24, 23), pt.bg = "black", title = "Stages for\nthermodynamic analysis", bty = "n")
   # Add axis labels and title
   mtext("Zc", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2)
   mtext("aa subs/site", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
@@ -655,8 +657,7 @@ plot_nitrogenase <- function() {
   axis(2, seq(-0.20, -0.12, 0.04), labels = FALSE)
   axis(2, c(-0.20, -0.12), tick = FALSE, las = 1)
 
-  # Get Zc and nC at nodes for each subunit
-  Zc_list <- nC_list <- vector("list", 3)
+  # Plot Zc for each subunit
   for(i in 1:length(subunits)) {
     # Load amino acid composition from FASTA file
     fasta_file <- file.path(seq_dir, paste(file_start, subunits[i], "fasta", sep = "."))
@@ -665,17 +666,15 @@ plot_nitrogenase <- function() {
     iaa <- match(nodes, aa$protein)
     node_aa <- aa[iaa, ]
     # Calculate Zc and nC
-    Zc_list[[i]] <- Zc(node_aa)
-    nC_list[[i]] <- nC(node_aa)
-    # Add points and gray lines
-    points(ages, Zc_list[[i]], pch = subunits[i])
-    lines(ages, Zc_list[[i]], type = "b", pch = NA, col = 8)
+    Zc_vals <- Zc(node_aa)
+    nC_vals <- nC(node_aa)
+    # Add points and lines
+    pch <- get.stages("nitrogenase", node_aa, return.pch = TRUE)
+    points(ages, Zc_vals, pch = pch, bg = "black")
+    lines(ages, Zc_vals, type = "b", pch = NA, col = 4)
+    # Add subunit labels
+    text(ages[1], Zc_vals[1], subunits[i], adj = 1.8)
   }
-
-  ## Calculate mean Zc for DDKK (stoichiometry of Nif-I complex)
-  #Zc_DDKK <- (Zc_list[[1]] * nC_list[[1]] + Zc_list[[2]] * nC_list[[2]]) / (nC_list[[1]] + nC_list[[2]])
-  ## Plot points for DDKK
-  #lines(ages, Zc_DDKK, type = "b", pch = 19)
 
   # Add legend
   legend("topright", legend = "Linear age model\nRelative ages only", bty = "n", text.font = 3, cex = 1.1)
@@ -692,6 +691,7 @@ plot_thioredoxin <- function() {
   dat <- read.csv("PIZ+11/DAAD19.csv")
   # Read amino acid compositions
   aa <- canprot::read_fasta("PIZ+11/thioredoxin.fasta")
+  aa$protein <- dat$name
   # Calculate Zc
   Zc <- canprot::Zc(aa)
 
@@ -713,13 +713,11 @@ plot_thioredoxin <- function() {
   # Add separate lines for each lineage
   for(lineage in c("Bacteria", "Arc-Euk")) {
     ilineage <- dat$Lineage == lineage
+    # Add points and lines
+    pch <- get.stages("thioredoxin", aa[ilineage, ], return.pch = TRUE)
+    points(dat$Age[ilineage], Zc[ilineage], pch = pch, bg = "black")
+    lines(dat$Age[ilineage], Zc[ilineage], type = "b", pch = NA, col = 7)
     add_age_error_bars(ilineage, Zc)
-    if(lineage == "Bacteria") pch <- rep(19, sum(ilineage))
-    if(lineage == "Arc-Euk") pch <- rep(15, sum(ilineage))
-    pch[length(pch)] <- 0
-    # Add points and gray lines
-    points(dat$Age[ilineage], Zc[ilineage], pch = pch)
-    lines(dat$Age[ilineage], Zc[ilineage], type = "b", pch = NA, col = 8)
   }
   text(3.5, -0.22, "Bacteria")
   text(2.5, -0.26, "Archaea+Eukaryota")
@@ -758,9 +756,10 @@ plot_IPMDH <- function() {
   axis(2, seq(-0.20, -0.12, 0.04), labels = FALSE)
   axis(2, c(-0.20, -0.12), tick = FALSE, las = 1)
 
-  # Add points and gray lines
-  points(ages / 1000, Zc, pch = pch)
-  lines(ages / 1000, Zc, type = "b", pch = NA, col = 8)
+  # Add points and lines
+  pch <- get.stages("IPMDH", aa, return.pch = TRUE)
+  points(ages / 1000, Zc, pch = pch, bg = "black")
+  lines(ages / 1000, Zc, type = "b", pch = NA, col = 5)
 
   # Add horizontal age uncertainty bars (age +/- uncertainty)
   i_err <- uncertainty > 0
@@ -796,13 +795,13 @@ plot_oxygen <- function() {
   text(par("usr")[1], -4.6, "~", xpd = NA, cex = 1.5, srt = 15)
   text(par("usr")[1], -5.5, "~", xpd = NA, cex = 1.5, srt = 15)
 
-  # GOE, NOE, and POE
+  # GOE, NOE, and Devonian
   rect(2.4, -5, 2, par("usr")[4], border = NA, col = "#d0edfd")
-  text(2.2, -5.5, "GOE", cex = 1.1)
+  text(2.2, -5.55, "GOE", cex = 1.1)
   rect(0.8, -5, 0.54, par("usr")[4], border = NA, col = "#d0edfd")
-  text(0.67, -5.5, "NOE", cex = 1.1)
+  text(0.67, -5.55, "NOE", cex = 1.1)
   rect(0.419, -5, 0.359, par("usr")[4], border = NA, col = "#d0edfd")
-  text(0.389, -5.5, "POE", cex = 1.1)
+  text(0.389, -5.55, "  Devonian", cex = 1.1)
   box()
 
   # Archean lines
@@ -1123,7 +1122,7 @@ plot_stability <- function(dataset = "rubisco", res = 200, pHlim = c(4, 10), O2l
     iI <- 20:36
     iII <- 1:19
     # Get the species in each group
-    groups <- list("Class I" = iI, "Class II" = iII)
+    stages <- list("Class I" = iI, "Class II" = iII)
   }
 
   if(dataset == "thaumarchaeota_old") {
@@ -1134,11 +1133,11 @@ plot_stability <- function(dataset = "rubisco", res = 200, pHlim = c(4, 10), O2l
     # If both are available, use predicted instead of database
     aa <- rbind(predicted, database)
     aa <- aa[!duplicated(aa$organism), ]
-    groupnames <- c("Basal", "Terrestrial", "Shallow", "Deep")
+    stagenames <- c("Basal", "Terrestrial", "Shallow", "Deep")
     # Get the species in each group
-    groups <- sapply(groupnames, function(group) aa$protein == group, simplify = FALSE)
+    stages <- sapply(stagenames, function(stage) aa$protein == stage, simplify = FALSE)
     # Compare Basal to Terrestrial 20240802
-    groups <- groups[1:2]
+    stages <- stages[1:2]
   }
 
   if(dataset == "rubisco_old") {
@@ -1150,7 +1149,7 @@ plot_stability <- function(dataset = "rubisco", res = 200, pHlim = c(4, 10), O2l
     aa$protein <- sapply(strsplit(aa$protein, "_"), "[", 2)
     # Set up groups for affinity aggregation:
     # 3 Form I/(II)/III and 3 Form I proteins (possibly pre-GOE and post-GOE)
-    groups = list(
+    stages = list(
       pre = c(TRUE, TRUE, TRUE, FALSE, FALSE, FALSE),
       post = c(FALSE, FALSE, FALSE, TRUE, TRUE, TRUE)
     )
@@ -1197,27 +1196,16 @@ plot_stability <- function(dataset = "rubisco", res = 200, pHlim = c(4, 10), O2l
     stopifnot(!any(duplicated(paste(aa$protein, aa$organism, sep = "_"))))
 
     # Set up groups for affinity aggregation
-    groups = list(
-      "Stage 1" = aa$protein %in% c("Anc_I/II/III", "Anc_I/III", "Anc_I/III'", "Anc_I_III"),
-      "Stage 2" = aa$protein %in% c("Anc_I", "AncL", "AncLS", "Anc_I_I-prime", "Anc_I-prime", "Anc_I"),
-      "Stage 3" = aa$protein %in% c("Anc_IA/B", "Anc_IB", "Anc_IAB", "Anc_IB", "Anc_ICD", "Anc_IA")
-    )
-    if(grepl("1_2", dataset)) groups <- groups[1:2]
-    if(grepl("2_3", dataset)) groups <- groups[2:3]
+    stages <- get.stages("rubisco", aa)
+    if(grepl("1_2", dataset)) stages <- stages[1:2]
+    if(grepl("2_3", dataset)) stages <- stages[2:3]
 
   }
 
   if(dataset == "IPMDH") {
-    # IPMDH stages 20260721
-    # Read amino acid compositions
+    # IPMDH 20260721
     aa <- canprot::read_fasta("CDY+25/IPMDH.fasta")
-    # Set up groups for affinity aggregation
-    groups = list(
-      "Stage 1" = aa$protein %in% c("Anc01", "Anc02", "Anc03", "Anc04"),
-      "Stage 2" = aa$protein %in% c("Anc05", "Anc06", "Anc07", "Anc08"),
-      "Stage 3" = aa$protein %in% c("Anc09", "Anc10", "Anc11"),
-      "Stage 4" = aa$protein %in% c("EcIPMDH")
-    )
+    stages <- get.stages("IPMDH", aa)
   }
 
   if(dataset == "nitrogenase") {
@@ -1227,11 +1215,7 @@ plot_stability <- function(dataset = "rubisco", res = 200, pHlim = c(4, 10), O2l
     aa_D <- read_fasta(file.path("CDA+25", paste(file_start, "D.fasta", sep = ".")))
     aa_K <- read_fasta(file.path("CDA+25", paste(file_start, "K.fasta", sep = ".")))
     aa <- rbind(aa_D, aa_K)
-    groups = list(
-      "Stage 1" = aa$protein %in% c("1206_map", "1207_map"),
-      "Stage 2" = aa$protein %in% c("1209_map", "1224_map"),
-      "Stage 3" = aa$protein %in% c("Nif_Azotobacter_vinelandii")
-    )
+    stages <- get.stages("nitrogenase", aa)
   }
 
   if(dataset %in% c("thioredoxin", "thioredoxin_A", "thioredoxin_B", "thioredoxin_B_1_2", "thioredoxin_B_2_3")) {
@@ -1244,27 +1228,60 @@ plot_stability <- function(dataset = "rubisco", res = 200, pHlim = c(4, 10), O2l
     # Subset Arc-Euk and Bacteria
     if(dataset == "thioredoxin_A") aa <- aa[dat$Lineage == "Arc-Euk", ]
     if(dataset == "thioredoxin_B") aa <- aa[dat$Lineage == "Bacteria", ]
-    groups = list(
-      "Stage 1" = aa$protein %in% c("LBCA", "AECA", "LACA"),
-      "Stage 2" = aa$protein %in% c("LPBCA"),
-      "Stage 3" = aa$protein %in% c("LGPCA", "LECA", "LAFCA"),
-      "Stage 4" = aa$protein %in% c("Ecoli", "Human")
-    )
-    if(dataset == "thioredoxin_B_1_2") groups <- groups[1:2]
-    if(dataset == "thioredoxin_B_2_3") groups <- groups[2:3]
+    stages <- get.stages("thioredoxin", aa)
+    if(dataset == "thioredoxin_B_1_2") stages <- stages[1:2]
+    if(dataset == "thioredoxin_B_2_3") stages <- stages[2:3]
   }
 
   # Make affinity plot 20220602
   # Load proteins and calculate affinity
   ip <- add.protein(aa, as.residue = TRUE)
   aout <- affinity(pH = c(pHlim, res), O2 = c(O2lim, res), iprotein = ip)
-  # Calculate average affinity for each group and make diagram
-  amean <- agg.affinity(aout, groups)
+  # Calculate average affinity for each stage and make diagram
+  amean <- agg.affinity(aout, groups = stages)
   lwd <- 2
   lty <- 1
-  if(plot_names) names <- names(groups) else names <- NA
+  if(plot_names) names <- names(stages) else names <- NA
   diagram(amean, col = col, lwd = lwd, lty = lty, add = add, balance = 1, names = names, format.names = FALSE, mar = mar)
 
+}
+
+# Function to get evolutionary stages for Fig. 5 and 6  20260723
+get.stages <- function(dataset, aa, return.pch = FALSE) {
+  if(dataset == "rubisco") {
+    stages = list(
+      "Stage 1" = aa$protein %in% c("Anc_I/II/III", "Anc_I/III", "Anc_I/III'", "Anc_I_III"),
+      "Stage 2" = aa$protein %in% c("Anc_I", "AncL", "AncLS", "Anc_I_I-prime", "Anc_I-prime", "Anc_I"),
+      "Stage 3" = aa$protein %in% c("Anc_IA/B", "Anc_IB", "Anc_IAB", "Anc_IB", "Anc_ICD", "Anc_IA")
+    )
+  } else if(dataset == "nitrogenase") {
+    stages = list(
+      "Stage 1" = aa$protein %in% c("1206_map", "1207_map"),
+      "Stage 2" = aa$protein %in% c("1209_map", "1224_map"),
+      "Stage 3" = aa$protein %in% c("Nif_Azotobacter_vinelandii")
+    )
+  } else if(dataset == "IPMDH") {
+    stages = list(
+      "Stage 1" = aa$protein %in% c("Anc01", "Anc02", "Anc03", "Anc04"),
+      "Stage 2" = aa$protein %in% c("Anc05", "Anc06", "Anc07", "Anc08"),
+      "Stage 3" = aa$protein %in% c("Anc09", "Anc10", "Anc11"),
+      "Stage 4" = aa$protein %in% c("EcIPMDH")
+    )
+  } else if(dataset == "thioredoxin") {
+    stages = list(
+      "Stage 1" = aa$protein %in% c("LBCA", "AECA", "LACA"),
+      "Stage 2" = aa$protein %in% c("LPBCA"),
+      "Stage 3" = aa$protein %in% c("LGPCA", "LECA", "LAFCA"),
+      "Stage 4" = aa$protein %in% c("Ecoli", "Human")
+    )
+  }
+  if(!return.pch) return(stages) else {
+    # Return pch values for Fig. 5
+    pch.ind <- rep(NA, nrow(aa))
+    for(i in 1:length(stages)) pch.ind[stages[[i]]] <- i
+    pch.vals <- c(21, 22, 24, 23)
+    return(pch.vals[pch.ind])
+  }
 }
 
 add_Eh7_axis <- function(las = 1) {
@@ -1402,7 +1419,7 @@ genoGOE_S0 <- function(pdf = FALSE) {
 # Figure S1: Relative stabilities for Rubisco (pairwise and groupwise affinities)
 genoGOE_S1 <- function(pdf = FALSE) {
 
-  if(pdf) pdf("Figure_S1.pdf", width = 5.6, height = 4)
+  if(pdf) pdf("Figure_S1.pdf", width = 7, height = 5)
   mat <- matrix(c(1,1, 2,2, 0, 3,3, 0), nrow = 2, byrow = TRUE)
   layout(mat)
 

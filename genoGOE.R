@@ -939,7 +939,7 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     text(5, -0.09, "Stage 2", font = 3, col = 8, xpd = NA)
     text(8.5, -0.09, "Stage 3", font = 3, col = 8, xpd = NA)
     # Add GOE Model 2 text
-    text(6.6, -0.19, "End GOE\n(Model 2)", adj = 0)
+    text(6.6, -0.19, "Start GOE\n(Model 2)", adj = 0)
     # Add legend
     legend("topleft", c("Amritkar", "Schulz", "Kaçar"), pch = c(1, 15, 19), col = c(1, 4, 2), pt.cex = 1.5, bty = "n")
     label.figure("A", cex = 1.5, font = 2, yfrac = 0.94)
@@ -1363,14 +1363,18 @@ agg.affinity <- function(aout, groups, fun = "mean") {
 ### SI Figures ###
 ##################
 
-# Plot Zc of ancestral and extant nitrogenases from Garcia et al. (2020)  20250325
-genoGOE_S0 <- function(pdf = FALSE) {
+# Figure S1: Zc of ancestral and extant nitrogenases from Garcia et al. (2020)  20250325
+genoGOE_S1 <- function(pdf = FALSE) {
 
-  ## Read FASTA file of ancient and extant sequences,
-  ## downloaded from https://github.com/kacarlab/AncientNitrogenase.git
+  ## From scratch: Read FASTA file of ancient and extant sequences,
+  ## available at https://github.com/kacarlab/AncientNitrogenase.git
   #aa <- canprot::read_fasta("GMKK20/Extant-MLAnc_Align.fasta")
+
   # Get amino acid sequences precomputed from Extant-MLAnc_Align.fasta
   aa <- read.csv("GMKK20/nitrogenase_aa.csv")
+  # Use only proteins shown in Fig. 6 of Garcia et al. (2020)
+  from_GMKK20_Fig6 <- sapply(aa$abbrv == "GMKK20_Fig6", isTRUE)
+  aa <- aa[from_GMKK20_Fig6, ]
 
   # List forms of nitrogenase and their ancestors
   form_to_anc <- list(
@@ -1384,15 +1388,16 @@ genoGOE_S0 <- function(pdf = FALSE) {
   )
 
   # Start plot
-  if(pdf) pdf("Figure_S0.pdf", width = 6, height = 4)
+  if(pdf) pdf("Figure_S1.pdf", width = 6, height = 6)
+  layout(matrix(c(1, 2, 1, 3), nrow = 2))
   par(mar = c(4, 4, 1, 1))
-  plot(extendrange(c(1, 7)), c(-0.20, -0.12), xlab = "Form of nitrogenase", xaxt = "n", ylab = "Zc", type = "n", ylim = c(-0.20, -0.12))
+  ylim <- c(-0.20, -0.12)
+  plot(extendrange(c(1, 7)), ylim, xlab = "Form of nitrogenase", xaxt = "n", ylab = "Zc", type = "n", ylim = ylim)
   axis(side = 1, at = seq_along(form_to_anc), labels = CHNOSZ::hyphen.in.pdf(names(form_to_anc)), gap.axis = 0)
 
   # Loop over nitrogenase forms
   set.seed(42)
   for(iform in seq_along(form_to_anc)) {
-
     # Calculate Zc of the ancestral proteins
     node <- form_to_anc[[iform]]
     ianc <- grepl(paste0("^Anc", node), aa$protein)
@@ -1400,26 +1405,67 @@ genoGOE_S0 <- function(pdf = FALSE) {
     # Plot points with jitter
     xvals <- jitter(rep(iform, length(Zc_anc)), amount = 0.1)
     points(xvals, Zc_anc, pch = 19)
-
     # Calculate Zc of the extant proteins
     form <- names(form_to_anc[iform])
     iext <- which(aa$ref == form)
-    Zc_ext <- canprot::Zc(aa[iext, ])
+    aa_ext <- aa[iext, ]
+    Zc_ext <- canprot::Zc(aa_ext)
     xvals <- jitter(rep(iform, length(Zc_ext)), amount = 0.1)
     points(xvals, Zc_ext)
-
   }
-
-  # Add legend and title
+  # Add legend
   legend("bottomright", c("Extant", "Ancestral"), pch = c(1, 19), bty = "n")
+  label.figure("A", cex = 1.5, font = 2, xfrac = 0.02)
+
+  # Panel B: Cyanobacteria vs others for Nif-I 20260726
+  par(mar = c(4, 4, 3, 1))
+  # Read CSV again to get all proteins
+  aa <- read.csv("GMKK20/nitrogenase_aa.csv")
+  # Limit to Nif-I, treating NA as FALSE
+  aa <- aa[sapply(aa$ref == "Nif-I", isTRUE), ]
+  # Identify Cyanobacteria
+  icyano <- sapply(aa$organism == "Cyanobacteriota", isTRUE)
+  # Get Zc values
+  Zc_list <- list(
+    Cyano = canprot::Zc(aa[icyano, ]),
+    Other = canprot::Zc(aa[!icyano, ])
+  )
+  names(Zc_list)[1] <- ""
+  names(Zc_list)[2] <- ""
+  boxplot(Zc_list, ylab = "Zc")
+  # Plot x-axis labels with custom spacing
+  names(Zc_list)[1] <- paste0("Cyanobacteriota\n(", length(Zc_list[[1]]), ")")
+  names(Zc_list)[2] <- paste0("Other phyla\n(", length(Zc_list[[2]]), ")")
+  axis(1, at = 1:2, labels = names(Zc_list), mgp = c(3, 2, 0))
+  pval <- t.test(Zc_list[[1]], Zc_list[[2]], alternative = "greater")$p.value
+  legend("topleft", legend = bquote(italic(p) == .(signif(pval, 2))), bty = "n")
+  title(CHNOSZ::hyphen.in.pdf("Extant Nif-I"), font.main = 1)
+  label.figure("B", cex = 1.5, font = 2, yfrac = 0.92)
+
+  # Panel C: Nif-I vs Nif-II 20260726
+  aa <- read.csv("GMKK20/nitrogenase_aa.csv")
+  aa <- aa[sapply(aa$ref %in% c("Nif-I", "Nif-II"), isTRUE), ]
+  inifI <- aa$ref == "Nif-I"
+  Zc_list <- list(
+    NifI = canprot::Zc(aa[inifI, ]),
+    NifII = canprot::Zc(aa[!inifI, ])
+  )
+  names(Zc_list)[1] <- CHNOSZ::hyphen.in.pdf(paste0("Nif-I (", length(Zc_list[[1]]), ")"))
+  names(Zc_list)[2] <- CHNOSZ::hyphen.in.pdf(paste0("Nif-II (", length(Zc_list[[2]]), ")"))
+  boxplot(Zc_list, ylab = "Zc")
+  pval <- t.test(Zc_list[[1]], Zc_list[[2]], alternative = "greater")$p.value
+  legend("topright", legend = bquote(italic(p) == .(signif(pval, 2))), bty = "n")
+  title(CHNOSZ::hyphen.in.pdf("Extant Nif-I vs Nif-II"), font.main = 1)
+  label.figure("C", cex = 1.5, font = 2, yfrac = 0.92)
+
   if(pdf) dev.off()
 
 }
 
-# Figure S1: Relative stabilities for Rubisco (pairwise and groupwise affinities)
-genoGOE_S1 <- function(pdf = FALSE) {
+# Figure S2: Relative stabilities for Rubisco (pairwise and groupwise affinities)
+genoGOE_S2 <- function(pdf = FALSE) {
 
-  if(pdf) pdf("Figure_S1.pdf", width = 7, height = 5)
+  if(pdf) pdf("Figure_S2.pdf", width = 7, height = 5)
   mat <- matrix(c(1,1, 2,2, 0, 3,3, 0), nrow = 2, byrow = TRUE)
   layout(mat)
 
@@ -1492,9 +1538,9 @@ genoGOE_S1 <- function(pdf = FALSE) {
 
 }
 
-# Figure S2: Relative stability of Rubisco stages (Kaçar et al., 2017 and Amritkar et al., 2025 individual datasets)  20260722
-genoGOE_S2 <- function(pdf = FALSE) {
-  if(pdf) pdf("Figure_S2.pdf", width = 10, height = 4)
+# Figure S3: Relative stability of Rubisco stages (Kaçar et al., 2017 and Amritkar et al., 2025 individual datasets)  20260722
+genoGOE_S3 <- function(pdf = FALSE) {
+  if(pdf) pdf("Figure_S3.pdf", width = 10, height = 4)
   par(mfrow = c(1, 2))
   # Kaçar et al., 2017
   plot_stability("rubisco_KHAB17_1_2", plot_names = FALSE, O2lim = c(-72.5, -40), col = 3)

@@ -80,6 +80,10 @@ genoGOE_6(pdf = TRUE)
 
 [ACK25](ACK25): Reconstructed ancestral sequences of Rubisco from the [GitHub repo](https://github.com/kacarlab/RuBisCO_evolution) of [Amritkar et al. (2025)](https://doi.org/10.1093/molbev/msae268).
 
+[JSW07](JSW07): Digitization of the paleotemperature reconstruction from Fig. 15 of [Jaffrés et al., 2007](https://doi.org/10.1016/j.earscirev.2007.04.002).
+
+[IR24](IR24): Digitization of the paleotemperature reconstruction from Fig. 3B of [Isson and Rauzi, 2024](https://doi.org/10.1126/science.adg1366).
+
 ## BacDive analysis
 
 See [bacdive/README.md](bacdive/README.md)

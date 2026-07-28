@@ -486,9 +486,9 @@ genoGOE_4 <- function(pdf = FALSE) {
 # Figure 5: Carbon oxidation state of reconstructed ancestral sequences and extant proteins 20250625
 # New version of Figure 5 with stacked Zc plots above O2 profile  20260715 jmd
 genoGOE_5 <- function(pdf = FALSE) {
-  if(pdf) pdf("Figure_5.pdf", width = 8, height = 8*5/6)
+  if(pdf) pdf("Figure_5.pdf", width = 8, height = 8)
   # Setup figure region
-  par(mfrow = c(5, 1))
+  par(mfrow = c(6, 1))
   par(mar = c(0, 4.1, 0, 2.1))
   # Make plots
   #plot_phylostrata()
@@ -497,6 +497,7 @@ genoGOE_5 <- function(pdf = FALSE) {
   plot_thioredoxin()
   plot_IPMDH()
   plot_oxygen()
+  plot_temperature()
   if(pdf) dev.off()
 }
 
@@ -850,9 +851,52 @@ plot_oxygen <- function() {
   mtext(quote(bold("("*log[10])), side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2, adj = 0.9, padj = 0)
   mtext("PAL)", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2, padj = 1.3)
   mtext("Age (Ga)", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
-  mtext("E. Oxygen", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
-  mtext("(Model: Lyons et al., 2024)", side = 3, line = -1.5, adj = 0.145, cex = par("cex") * 1.2)
+  mtext("E. Atmospheric Oxygen", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("(Lyons et al., 2024)", side = 3, line = -1.5, adj = 0.28, cex = par("cex") * 1.2)
 }
+
+# Plot temperature curves from IR24 and JSW07  20260727 jmd
+plot_temperature <- function() {
+  # Start plot
+  xlim <- c(4.5, 0)
+  ylim = c(0, 40)
+  plot(xlim, ylim, xlim = xlim, xaxt = "n", xlab = "", yaxt = "n", ylab = "", type = "n")
+  # Axis ticks and labels
+  axis(1, tcl = 0.5, mgp = c(-3, -1.5, 0))
+  axis(2, seq(0, 40, 10), labels = FALSE)
+  axis(2, c(0, 40), tick = FALSE, las = 1)
+
+  # Add line from IR24
+  dat <- read.csv("IR24/IR24_Fig3B.csv")
+  lines(dat$Age_Ga, dat$T_C, col = 4, lwd = 2)
+
+  # Add line from JSW07
+  dat <- read.csv("JSW07/JSW07_Fig15.csv")
+  lines(dat$Age_Ma/1000, dat$T_C, col = 2, lwd = 1.5, lty = 2)
+
+  # Identify min/max values
+  T_range <- range(dat$T_C)
+  Age_vals <- dat$Age_Ma[dat$T_C %in% T_range]/1000
+  print(paste("Age range for min/max T in IR24:", paste(Age_vals, collapse = ", ")))
+  T_text <- sapply(T_range, function(T_val) {
+    bquote(.(round(T_val)) ~ degree*C)
+  })
+  text(Age_vals, T_range, as.expression(T_text), adj = -0.2)
+
+  # Add loess curve for JSW07
+  dat.lo <- loess(T_C ~ Age_Ma, dat)
+  lines(dat$Age_Ma/1000, predict(dat.lo), lty = 3)
+
+  # Add axis labels and title
+  mtext(quote(bolditalic(T)~bold("("*degree*C*")")), side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2)
+  mtext("Age (Ga)", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("F. Seawater Temperature", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+
+  # Add legend
+  legend("topleft", c("Jaffrés et al. (2007)", "Loess fit", "Isson and Rauzi (2024)"),
+    lty = c(2, 3, 1), col = c(2, 1, 4), lwd = c(1.5, 1.5, 1.5), title = "", bty = "n")
+}
+
 
 #####################################
 ### End of functions for Figure 5 ###

@@ -84,6 +84,8 @@ genoGOE_6(pdf = TRUE)
 
 [IR24](IR24): Digitization of the paleotemperature reconstruction from Fig. 3B of [Isson and Rauzi, 2024](https://doi.org/10.1126/science.adg1366).
 
+[RBH+26](RBH+26): Reconstructed ancestral sequences of nitrogenase sequences from the [GitHub repo](https://github.com/kacarlab/N-isotope) of [Rucker et al., 2026](https://doi.org/10.1038/s41467-025-67423-y).
+
 ## BacDive analysis
 
 See [bacdive/README.md](bacdive/README.md)

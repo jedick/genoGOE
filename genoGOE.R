@@ -595,13 +595,13 @@ plot_rubisco <- function() {
   plot(xlim, ylim, xlim = xlim, xaxt = "n", xlab = "", yaxt = "n", ylab = "", type = "n")
   # Put labels at the Rubisco age and whole Gya after that
   at <- c(3.8, 3, 2, 1)
-  labels <- round(predict(age2sub, newdata = data.frame(age = at)), 1)
+  labels <- round(predict(age2sub, newdata = data.frame(age = at)), 2)
   axis(1, at = at, labels = labels, tcl = 0.5, mgp = c(-3, -1.5, 0))
   axis(2, seq(-0.20, -0.10, 0.05), labels = FALSE)
   axis(2, c(-0.20, -0.10), tick = FALSE, las = 1)
 
   # Add points and lines
-  pch <- get.stages("rubisco", aa, return.pch = TRUE)
+  pch <- get_stages("rubisco", aa, return.pch = TRUE)
   points(ages, Zc_vals, pch = pch, bg = "black")
   lines(ages, Zc_vals, type = "b", pch = NA, col = 3)
 
@@ -612,78 +612,107 @@ plot_rubisco <- function() {
   text(ages[6], Zc_vals[6] - 0.007, aa$protein[6], adj = 0)
 
   # Add legend
-  legend("topright", legend = "Linear age model\nRelative ages only", bty = "n", text.font = 3, cex = 1.1)
-  legend("bottomright", legend = paste("Stage", 1:4), pch = c(21, 22, 24, 23), pt.bg = "black", title = "Stages for\nthermodynamic analysis", bty = "n")
+  legend("topright", legend = "Linear age model\nApproximate ages only", bty = "n", text.font = 3, cex = 1.1)
+  legend("bottomright", legend = paste("Stage", 1:3), pch = c(21, 22, 24), pt.bg = "black", title = "Stages for\nthermodynamic analysis", bty = "n")
   # Add axis labels and title
   mtext("Zc", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2)
   mtext("aa subs/site", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
   mtext("A. Rubisco large subunit", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
-  mtext("(RAS: Kaçar et al., 2017)", side = 3, line = -1.5, adj = 0.31, cex = par("cex") * 1.2)
+  legend("topleft", "RAS: Kaçar et al. (2017)", bty = "n", title = "", inset = c(-0.023, 0), cex = 1.1)
 }
 
 # Plot Zc for ancestral and modern nitrogenases from Cuevas Zuviría et al. (2025)  20260715
+# Add data from Rucker et al. (2026)  20260801
 plot_nitrogenase <- function() {
-  # Directory with FASTA files
-  seq_dir <- "CDA+25"
-  # Start of file name
-  file_start <- "AGNifAlign105.ext-anc.alt"
-  # Subunit names
-  subunits <- c("D", "K", "H")
-  # Node names (oldest to youngest)
-  nodes <- c("1206_map", "1207_map", "1209_map", "1224_map", "Nif_Azotobacter_vinelandii")
 
-  # Branch lengths from Fig. 3 of Cuevas Zuviría et al. (2025) (root node at zero)
-  # Node substitutions (aa/site)
-  # Root node, Anc1206, Anc1207, Anc1209, Anc1224, A. vinelandii
-  aa_sub <- c(0, 0.23, 0.71, 0.93, 1.04, 1.76)
+  # List of all proteins with branch lengths
+  # (aa_sub - measured from root node in CDA+25 Fig. 3)
+  # * Anc1209 and Anc1224 are excluded because they are similar to Anc4 and Anc3 in RBH+26
+  # N | CDA+25   | RBH+26    | aa_sub
+  # 1 | Anc1206  |           | 0.22
+  # 2 | Anc1207  |           | 0.71
+  #   | Anc1209* |           | 0.87
+  # 3 |          | Anc4_1223 | 0.93
+  #   | Anc1224* |           | 1.04
+  # 4 |          | Anc3_1231 | 1.12
+  # 5 |          | Anc2_1304 | 1.48
+  # 6 |          | Anc1_1312 | 1.64
+  # 7 | A. vinelandii        | 1.76
 
-  # Transform branch length to time (linear model)
-  # ca. 3.2 Gya for nitrogenase and 2.5 Gya for Anc1 - Cuevas Zuviría et al.
-  sub <- c(0, 1.04)
-  age <- c(3.2, 2.5)
-  sub2age <- lm(age ~ sub)
-  # Predict ages from branch lengths for ancestral and modern sequences
-  ages <- predict(sub2age, newdata = data.frame(sub = tail(aa_sub, -1)))
+  # Node numbers for both datasets (lower = older)
+  x_CDA <- c(1, 2, 7)
+  x_RBH <- c(3, 4, 5, 6, 7)
+
+  # CDA+25 node names
+  CDA_nodes <- c("1206_map", "1207_map", "Nif_Azotobacter_vinelandii")
+  # RBH+26 node names
+  RBH_nodes <- c("Anc4_1223", "Anc3_1231", "Anc2_1304", "Anc1_1312", "WT_Nif_Azotobacter_vinelandii")
+  # Combined node names from both datasets
+  all_nodes <- character()
+  all_nodes[x_CDA] <- CDA_nodes
+  all_nodes[x_RBH] <- RBH_nodes
+
+  # Branch lengths for all proteins
+  aa_sub <- c(0.22, 0.71, 0.93, 1.12, 1.48, 1.64, 1.76)
+  # Ages for proteins (Anc4 - Anc1) in RBH+26 Fig. 1
+  age_RBH <- c(2.00, 1.72, 1.35, 1.17)
+
+  # Linear fit between branch lengths and ages from RBH+26
+  aa_sub_RBH <- aa_sub[head(x_RBH, -1)]
+  sub2age <- lm(age_RBH ~ aa_sub_RBH)
+  print(paste("R-squared for age_RBH ~ aa_sub_RBH:", round(summary(sub2age)$r.squared, 3)))
+  # Predict ages for all proteins from branch length
+  ages <- predict(sub2age, newdata=data.frame(aa_sub_RBH = aa_sub))
   # Make inverse model to get tick labels
-  age2sub <- lm(sub ~ age)
+  age2sub <- lm(aa_sub_RBH ~ age_RBH)
 
   # Start plot
   ylim <- c(-0.20, -0.12)
   xlim <- c(4.5, 0)
   plot(xlim, ylim, xlim = xlim, xaxt = "n", xlab = "", yaxt = "n", ylab = "", type = "n")
-  # Put labels at the nitrogenase age and whole Gya after that
-  at <- c(3.2, 3, 2)
-  labels <- round(predict(age2sub, newdata = data.frame(age = at)), 1)
+  # Put labels at whole Ga values
+  at <- c(3, 2, 1)
+  labels <- round(predict(age2sub, newdata = data.frame(age_RBH = at)), 1)
   axis(1, at = at, labels = labels, tcl = 0.5, mgp = c(-3, -1.5, 0))
   axis(2, seq(-0.20, -0.12, 0.04), labels = FALSE)
   axis(2, c(-0.20, -0.12), tick = FALSE, las = 1)
 
-  # Plot Zc for each subunit
+  # Loop over Nif subunits
+  subunits <- c("D", "K", "H")
   for(i in 1:length(subunits)) {
-    # Load amino acid composition from FASTA file
-    fasta_file <- file.path(seq_dir, paste(file_start, subunits[i], "fasta", sep = "."))
-    aa <- read_fasta(fasta_file)
-    # Find the node names in the data frame
-    iaa <- match(nodes, aa$protein)
+    # Initialize Zc values
+    Zc_vals <- numeric()
+    # Get CDA+25 data
+    fasta_file <- paste("AGNifAlign105.ext-anc.alt", subunits[i], "fasta", sep = ".")
+    fasta_path <- file.path("CDA+25", fasta_file)
+    aa_CDA <- canprot::read_fasta(fasta_path)
+    # Get RBH+26 data
+    fasta_file <- paste0("Nif", subunits[i], "_selected_seqs.fasta")
+    fasta_path <- file.path("RBH+26", fasta_file)
+    aa_RBH <- canprot::read_fasta(fasta_path)
+    # Combine the data frames
+    aa <- rbind(aa_CDA, aa_RBH)
+    # Find the rows with matching node names
+    iaa <- match(all_nodes, aa$protein)
     node_aa <- aa[iaa, ]
-    # Calculate Zc and nC
+    # Calculate Zc
     Zc_vals <- Zc(node_aa)
-    nC_vals <- nC(node_aa)
     # Add points and lines
-    pch <- get.stages("nitrogenase", node_aa, return.pch = TRUE)
+    pch <- get_stages("nitrogenase", node_aa, return.pch = TRUE)
     points(ages, Zc_vals, pch = pch, bg = "black")
     lines(ages, Zc_vals, type = "b", pch = NA, col = 4)
     # Add subunit labels
     text(ages[1], Zc_vals[1], subunits[i], adj = 1.8)
+    text(ages[7], Zc_vals[7], subunits[i], adj = -0.8)
   }
 
   # Add legend
-  legend("topright", legend = "Linear age model\nRelative ages only", bty = "n", text.font = 3, cex = 1.1)
+  legend("topright", legend = "Linear age model\nApproximate ages only", bty = "n", text.font = 3, cex = 1.1)
   # Add axis labels and title
   mtext("Zc", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2)
   mtext("aa subs/site", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
   mtext("B. Nitrogenase subunits", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
-  mtext("(RAS: Cuevas Zuviría et al., 2025)", side = 3, line = -1.5, adj = 0.335, cex = par("cex") * 1.2)
+  legend("topleft", "RAS: Cuevas Zuviría et al. (2025)\nand Rucker et al. (2026)", bty = "n", title = "", inset = c(-0.023, 0), cex = 1.1)
 }
 
 # Plot Zc for ancestral thioredoxins from Perez-Jimenez et al. (2011)  20250625
@@ -715,7 +744,7 @@ plot_thioredoxin <- function() {
   for(lineage in c("Bacteria", "Arc-Euk")) {
     ilineage <- dat$Lineage == lineage
     # Add points and lines
-    pch <- get.stages("thioredoxin", aa[ilineage, ], return.pch = TRUE)
+    pch <- get_stages("thioredoxin", aa[ilineage, ], return.pch = TRUE)
     points(dat$Age[ilineage], Zc[ilineage], pch = pch, bg = "black")
     lines(dat$Age[ilineage], Zc[ilineage], type = "b", pch = NA, col = 7)
     add_age_error_bars(ilineage, Zc)
@@ -727,7 +756,7 @@ plot_thioredoxin <- function() {
   mtext("Zc", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2)
   mtext("Age (Ga)", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
   mtext("C. Thioredoxin", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
-  mtext(CHNOSZ::hyphen.in.pdf("(RAS: Perez-Jimenez et al., 2011)"), side = 3, line = -1.5, adj = 0.215, cex = par("cex") * 1.2)
+  legend("topleft", CHNOSZ::hyphen.in.pdf("RAS: Perez-Jimenez et al. (2011)"), bty = "n", title = "", inset = c(-0.022, 0), cex = 1.1)
 }
 
 # Plot Zc of IPMDH from Cui et al. (2025)  20250407
@@ -758,7 +787,7 @@ plot_IPMDH <- function() {
   axis(2, c(-0.20, -0.12), tick = FALSE, las = 1)
 
   # Add points and lines
-  pch <- get.stages("IPMDH", aa, return.pch = TRUE)
+  pch <- get_stages("IPMDH", aa, return.pch = TRUE)
   points(ages / 1000, Zc, pch = pch, bg = "black")
   lines(ages / 1000, Zc, type = "b", pch = NA, col = 5)
 
@@ -773,8 +802,8 @@ plot_IPMDH <- function() {
   # Add axis labels and title
   mtext("Zc", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2)
   mtext("Age (Ga)", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
-  mtext("D. IPMDH", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
-  mtext("(RAS: Cui et al., 2025)", side = 3, line = -1.5, adj = 0.13, cex = par("cex") * 1.2)
+  mtext(CHNOSZ::hyphen.in.pdf("D. 3-isopropylmalate dehydrogenase (IPMDH)"), side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  legend("topleft", "RAS: Cui et al. (2025)", bty = "n", title = "", inset = c(-0.025, 0), cex = 1.1)
 }
 
 # Plot O2 curve from Lyons et al. (2024)  20260716
@@ -851,8 +880,8 @@ plot_oxygen <- function() {
   mtext(quote(bold("("*log[10])), side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2, adj = 0.9, padj = 0)
   mtext("PAL)", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2, padj = 1.3)
   mtext("Age (Ga)", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
-  mtext("E. Atmospheric Oxygen", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
-  mtext("(Lyons et al., 2024)", side = 3, line = -1.5, adj = 0.28, cex = par("cex") * 1.2)
+  mtext("E. Atmospheric oxygen", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  legend("topleft", "Adapted from Lyons et al. (2024)", bty = "n", title = "", inset = c(-0.0215, 0), cex = 1.1)
 }
 
 # Plot temperature curves from IR24 and JSW07  20260727 jmd
@@ -877,7 +906,7 @@ plot_temperature <- function() {
   # Identify min/max values
   T_range <- range(dat$T_C)
   Age_vals <- dat$Age_Ma[dat$T_C %in% T_range]/1000
-  print(paste("Age range for min/max T in IR24:", paste(Age_vals, collapse = ", ")))
+  print(paste("Age range for min/max T in IR24:", paste(round(Age_vals, 2), collapse = ", ")))
   T_text <- sapply(T_range, function(T_val) {
     bquote(.(round(T_val)) ~ degree*C)
   })
@@ -888,13 +917,13 @@ plot_temperature <- function() {
   lines(dat$Age_Ma/1000, predict(dat.lo), lty = 3)
 
   # Add axis labels and title
-  mtext(quote(bolditalic(T)~bold("("*degree*C*")")), side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2)
+  mtext(quote(bolditalic(T)~bold("("*degree*C*")")), side = 2, las = 1, line = 1.2, font = 2, cex = par("cex") * 1.2)
   mtext("Age (Ga)", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
-  mtext("F. Seawater Temperature", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("F. Ocean surface temperature", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
 
   # Add legend
   legend("topleft", c("Jaffrés et al. (2007)", "Loess fit", "Isson and Rauzi (2024)"),
-    lty = c(2, 3, 1), col = c(2, 1, 4), lwd = c(1.5, 1.5, 1.5), title = "", bty = "n")
+    lty = c(2, 3, 1), col = c(2, 1, 4), lwd = c(1.5, 1.5, 1.5), title = "", bty = "n", cex = 1.1)
 }
 
 
@@ -994,10 +1023,10 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     # Rubisco relative stability
     plot_stability("rubisco_1_2", plot_names = FALSE, mar = mar, col = 3)
     plot_stability("rubisco_2_3", plot_names = FALSE, add = TRUE, col = 3)
-    text(7, -65, "Stage 1")
-    text(7, -62, "Stage 2")
-    text(6, -69, "Stage 2")
-    text(6, -66, "Stage 3")
+    text(7, -64.5, "Stage 1")
+    text(7, -62.7, "Stage 2")
+    text(6, -68.5, "Stage 2")
+    text(6, -66.3, "Stage 3")
     title("Rubisco", font.main = 1)
     label.figure("B", cex = 1.5, font = 2, yfrac = 0.94)
   }
@@ -1009,7 +1038,7 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     plot.window(c(0, 1), c(-72.5, -58))
     arrows(0.0, -63.2, 0, -70, length = 0.15, xpd = NA)
     text(0.1, -66.6, "Time", adj = 0, font = 3)
-    text(0, -60, "Retrograde\nredox\nevolution", adj = 0, font = 3)
+    text(-0.1, -60.5, "Retrograde\nredox\nevolution", adj = 0, font = 3, xpd = NA)
     par(opar)
   }
 
@@ -1020,11 +1049,11 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     }
 
     plot_stability("nitrogenase", mar = mar, col = 4)
-    title("Nitrogenase", font.main = 1)
+    title("Nitrogenase (D and K subunits)", font.main = 1)
     label.figure("C", cex = 1.5, font = 2, yfrac = 0.94)
 
     plot_stability("thioredoxin", mar = mar, col = 7)
-    title("Thioredoxin", font.main = 1)
+    title("Thioredoxin (all lineages)", font.main = 1)
 
     plot_stability("IPMDH", mar = mar, col = 5)
     title("IPMDH", font.main = 1)
@@ -1037,7 +1066,7 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     plot.window(c(0, 1), c(-72.5, -58))
     arrows(0.0, -70, 0, -64, length = 0.15, xpd = NA)
     text(0.1, -67, "Time", adj = 0, font = 3)
-    text(0, -60.5, "Prograde\nredox\nevolution", adj = 0, font = 3)
+    text(-0.1, -60.5, "Prograde\nredox\nevolution", adj = 0, font = 3, xpd = NA)
     par(opar)
   }
 
@@ -1120,7 +1149,7 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     ip <- add.protein(myaa, as.residue = TRUE)
     # Calculate affinity of composition reactions as a function of Eh and pH
     res <- 300
-    a <- affinity(pH = c(3, 10, res), O2 = c(-72.5, -58, res), iprotein = ip)
+    a <- affinity(pH = c(3, 10, res), O2 = c(-72, -62, res), iprotein = ip)
     # Group genomes according to presence of sulfur-cycling genes
     groups <- sapply(genomes, function(genome) match(genome, myaa$organism))
     # Calculate mean affinities for each group and make diagram
@@ -1153,7 +1182,7 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
 }
 
 # Relative stability diagrams for reconstructed ancestral proteins 20260721
-plot_stability <- function(dataset = "rubisco", res = 200, pHlim = c(4, 10), O2lim = c(-72.5, -58), add = FALSE, plot_names = TRUE, mar = NULL, col = 1) {
+plot_stability <- function(dataset = "rubisco", res = 200, pHlim = c(4, 10), O2lim = c(-72, -62), add = FALSE, plot_names = TRUE, mar = NULL, col = 1) {
 
   # Setup basis species
   basis("QEC+")
@@ -1240,7 +1269,7 @@ plot_stability <- function(dataset = "rubisco", res = 200, pHlim = c(4, 10), O2l
     stopifnot(!any(duplicated(paste(aa$protein, aa$organism, sep = "_"))))
 
     # Set up groups for affinity aggregation
-    stages <- get.stages("rubisco", aa)
+    stages <- get_stages("rubisco", aa)
     if(grepl("1_2", dataset)) stages <- stages[1:2]
     if(grepl("2_3", dataset)) stages <- stages[2:3]
 
@@ -1249,17 +1278,22 @@ plot_stability <- function(dataset = "rubisco", res = 200, pHlim = c(4, 10), O2l
   if(dataset == "IPMDH") {
     # IPMDH 20260721
     aa <- canprot::read_fasta("CDY+25/IPMDH.fasta")
-    stages <- get.stages("IPMDH", aa)
+    stages <- get_stages("IPMDH", aa)
   }
 
-  if(dataset == "nitrogenase") {
-    # Start of file name
-    file_start <- "AGNifAlign105.ext-anc.alt"
-    # Get amino acid composition for ancestral proteins for each subunit
-    aa_D <- read_fasta(file.path("CDA+25", paste(file_start, "D.fasta", sep = ".")))
-    aa_K <- read_fasta(file.path("CDA+25", paste(file_start, "K.fasta", sep = ".")))
-    aa <- rbind(aa_D, aa_K)
-    stages <- get.stages("nitrogenase", aa)
+  if(dataset %in% c("nitrogenase", "nitrogenase_1_2", "nitrogenase_2_3")) {
+    # Get data from Cuevas Zuviría et al. (2025)
+    aa_D_CDA <- read_fasta(file.path("CDA+25", "AGNifAlign105.ext-anc.alt.D.fasta"))
+    aa_K_CDA <- read_fasta(file.path("CDA+25", "AGNifAlign105.ext-anc.alt.K.fasta"))
+    # Get data from Rucker et al. (2026)
+    aa_D_RBH <- read_fasta(file.path("RBH+26", "NifD_selected_seqs.fasta"))
+    aa_K_RBH <- read_fasta(file.path("RBH+26", "NifK_selected_seqs.fasta"))
+    aa <- rbind(aa_D_CDA, aa_K_CDA, aa_D_RBH, aa_K_RBH)
+
+    # Set up groups for affinity aggregation
+    stages <- get_stages("nitrogenase", aa)
+    if(grepl("1_2", dataset)) stages <- stages[1:2]
+    if(grepl("2_3", dataset)) stages <- stages[2:3]
   }
 
   if(dataset %in% c("thioredoxin", "thioredoxin_A", "thioredoxin_B", "thioredoxin_B_1_2", "thioredoxin_B_2_3")) {
@@ -1272,7 +1306,7 @@ plot_stability <- function(dataset = "rubisco", res = 200, pHlim = c(4, 10), O2l
     # Subset Arc-Euk and Bacteria
     if(dataset == "thioredoxin_A") aa <- aa[dat$Lineage == "Arc-Euk", ]
     if(dataset == "thioredoxin_B") aa <- aa[dat$Lineage == "Bacteria", ]
-    stages <- get.stages("thioredoxin", aa)
+    stages <- get_stages("thioredoxin", aa)
     if(dataset == "thioredoxin_B_1_2") stages <- stages[1:2]
     if(dataset == "thioredoxin_B_2_3") stages <- stages[2:3]
   }
@@ -1285,13 +1319,13 @@ plot_stability <- function(dataset = "rubisco", res = 200, pHlim = c(4, 10), O2l
   amean <- agg.affinity(aout, groups = stages)
   lwd <- 2
   lty <- 1
-  if(plot_names) names <- names(stages) else names <- NA
+  if(plot_names) names <- amean$species$name else names <- NA
   diagram(amean, col = col, lwd = lwd, lty = lty, add = add, balance = 1, names = names, format.names = FALSE, mar = mar)
 
 }
 
 # Function to get evolutionary stages for Fig. 5 and 6  20260723
-get.stages <- function(dataset, aa, return.pch = FALSE) {
+get_stages <- function(dataset, aa, return.pch = FALSE) {
   if(dataset == "rubisco") {
     stages = list(
       "Stage 1" = aa$protein %in% c("Anc_I/II/III", "Anc_I/III", "Anc_I/III'", "Anc_I_III"),
@@ -1301,22 +1335,20 @@ get.stages <- function(dataset, aa, return.pch = FALSE) {
   } else if(dataset == "nitrogenase") {
     stages = list(
       "Stage 1" = aa$protein %in% c("1206_map", "1207_map"),
-      "Stage 2" = aa$protein %in% c("1209_map", "1224_map"),
-      "Stage 3" = aa$protein %in% c("Nif_Azotobacter_vinelandii")
+      "Stage 2" = aa$protein %in% c("Anc4_1223", "Anc3_1231"),
+      "Stage 3" = aa$protein %in% c("Anc2_1304", "Anc1_1312", "Nif_Azotobacter_vinelandii", "WT_Nif_Azotobacter_vinelandii")
     )
   } else if(dataset == "IPMDH") {
     stages = list(
       "Stage 1" = aa$protein %in% c("Anc01", "Anc02", "Anc03", "Anc04"),
       "Stage 2" = aa$protein %in% c("Anc05", "Anc06", "Anc07", "Anc08"),
-      "Stage 3" = aa$protein %in% c("Anc09", "Anc10", "Anc11"),
-      "Stage 4" = aa$protein %in% c("EcIPMDH")
+      "Stage 3" = aa$protein %in% c("Anc09", "Anc10", "Anc11", "EcIPMDH")
     )
   } else if(dataset == "thioredoxin") {
     stages = list(
-      "Stage 1" = aa$protein %in% c("LBCA", "AECA", "LACA"),
-      "Stage 2" = aa$protein %in% c("LPBCA"),
-      "Stage 3" = aa$protein %in% c("LGPCA", "LECA", "LAFCA"),
-      "Stage 4" = aa$protein %in% c("Ecoli", "Human")
+      "Stage 1" = aa$protein %in% c("LBCA", "AECA", "LACA", "LPBCA"),
+      "Stage 2" = aa$protein %in% c("LGPCA", "LECA", "LAFCA"),
+      "Stage 3" = aa$protein %in% c("Ecoli", "Human")
     )
   }
   if(!return.pch) return(stages) else {
@@ -1525,7 +1557,7 @@ genoGOE_S2 <- function(pdf = FALSE) {
   basis("QEC+")
   swap.basis("O2", "e-")
   # Set plot resolution
-  res <- 300
+  res <- 200
   
   # Panel A: Pairwise stability boundaries for Rubisco
   # Loop over individual pairs
@@ -1551,8 +1583,8 @@ genoGOE_S2 <- function(pdf = FALSE) {
     }
   }
 
-  text(5.2, 0.62, "Higher affinity\nfor Form I protein\nin each pair", cex = 0.8)
-  text(4.8, -0.15, "Higher affinity for\nForm I/(II)/III protein in each pair", cex = 0.8, srt = -21)
+  text(5.2, 0.62, "Higher affinity\nfor Form I protein\nin each pair")
+  text(4.8, -0.15, "Higher affinity for\nForm I/(II)/III protein in each pair", srt = -21)
   title("Pairwise Rubiscos", font.main = 1)
   label.figure("A", cex = 1.5, font = 2, yfrac = 0.92)
 
@@ -1564,16 +1596,16 @@ genoGOE_S2 <- function(pdf = FALSE) {
   groups <- list(pre = c(TRUE, TRUE, TRUE, FALSE, FALSE, FALSE), post = c(FALSE, FALSE, FALSE, TRUE, TRUE, TRUE))
   amean <- agg.affinity(aout, groups = groups)
   diagram(amean, lwd = 2, col = 3, names = "", xlab = "pH", ylab = axis.label("Eh"), balance = 1)
-  text(6, -0.18, "Higher mean affinity\nfor Form I/(II)/III proteins", font = 2, cex = 0.8, srt = -21)
-  text(6.5, 0.1, "Higher mean affinity\nfor Form I proteins", font = 2, cex = 0.8, srt = -21)
+  text(6, -0.18, "Higher mean affinity\nfor Form I/(II)/III proteins", srt = -21)
+  text(6.5, 0.1, "Higher mean affinity\nfor Form I proteins", srt = -21)
   title("Groupwise Rubiscos", font.main = 1)
   label.figure("B", cex = 1.5, font = 2, yfrac = 0.92)
 
   # Panel C: Groupwise stability boundary (logfO2-pH diagram)
   par(mar = c(3, 3.5, 2.5, 3))
-  plot_stability("rubisco_old", plot_names = FALSE, col = 3)
-  text(6.5, -64, "Higher mean affinity\nfor Form I/(II)/III proteins", font = 2, cex = 0.8)
-  text(5.5, -60, "Higher mean affinity\nfor Form I proteins", font = 2, cex = 0.8)
+  plot_stability("rubisco_old", plot_names = FALSE, col = 3, O2lim = c(-70, -58))
+  text(6.5, -64, "Higher mean affinity\nfor Form I/(II)/III proteins")
+  text(5.5, -60, "Higher mean affinity\nfor Form I proteins")
   add_Eh7_axis()
   title("Groupwise Rubiscos", font.main = 1)
   label.figure("C", cex = 1.5, font = 2, yfrac = 0.92)
@@ -1593,13 +1625,13 @@ genoGOE_S3 <- function(pdf = FALSE) {
   text(7, -49, "Stage 2")
   text(6, -70, "Stage 2")
   text(6, -66, "Stage 3")
-  abline(h = -58, lty = 2, col = 8)
-  text(7, -57, "Limit of Fig. 6B", font = 3)
+  abline(h = -62, lty = 2, col = 8)
+  text(7, -61, "Upper limit of Fig. 6B", font = 3)
   label.figure("A", cex = 1.5, font = 2, yfrac = 0.94)
   title("Kaçar et al. (2017)", font.main = 1)
   # Amritkar et al., 2025
   plot_stability("rubisco_ACK25", O2lim = c(-72.5, -40), col = 3)
-  abline(h = -58, lty = 2, col = 8)
+  abline(h = -62, lty = 2, col = 8)
   label.figure("B", cex = 1.5, font = 2, yfrac = 0.94)
   title("Amritkar et al. (2025)", font.main = 1)
   if(pdf) dev.off()

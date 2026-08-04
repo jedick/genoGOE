@@ -834,9 +834,21 @@ plot_oxygen <- function() {
   text(0.389, -5.55, "  Devonian", cex = 1.1)
   box()
 
-  # Archean lines
-  lines(c(4, 3), c(-5.6, -5.6), col = col, lwd = 15)
-  lines(c(3, 2.45), c(-5, -5), col = col, lwd = 15)
+  ## Archean lines
+  #lines(c(4, 3), c(-5.6, -5.6), col = col, lwd = 15)
+  #lines(c(3, 2.45), c(-5, -5), col = col, lwd = 15)
+
+  # Archean lines, with a cross-fade between the two bars centered at 3.0 Ga
+  fade_range <- c(3.5, 2.5)
+  fade_offset <- 0.3
+  fade_x <- seq(fade_range[1], fade_range[2], length.out = 100)
+  lines(c(4, fade_range[1]), c(-5.6, -5.6), col = col, lwd = 15)
+  lines(c(fade_range[2], 2.45), c(-5, -5), col = col, lwd = 15)
+  for (i in seq_len(length(fade_x) - 1)) {
+    frac <- (i - 1) / (length(fade_x) - 1)
+    if(i > 25) lines(fade_x[c(i, i + 1)] + fade_offset, c(-5.6, -5.6), col = adjustcolor(col, alpha.f = 1 - frac), lwd = 15)
+    if(i < 75) lines(fade_x[c(i, i + 1)] - fade_offset, c(-5, -5), col = adjustcolor(col, alpha.f = frac), lwd = 15)
+  }
 
   # Plot smooth line with spline function
   smoothline <- function(x, y, x_vals, lwd = 10, lty = 1, rev = FALSE) {

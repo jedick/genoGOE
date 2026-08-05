@@ -91,7 +91,7 @@ genoGOE_1 <- function(pdf = FALSE) {
 # Figure 2: Correlation of GC content and Zc with features from BacDive database
 genoGOE_2 <- function(pdf = FALSE) {
   # Read data
-  df <- read.csv("bacdive/cleaned_data_with_Zc.csv", check.names = FALSE)
+  df <- read.csv("BacDive/cleaned_data_with_Zc.csv", check.names = FALSE)
 
   # Binary classification of Oxygen tolerance (Anaerobe or Non-anaerobe)
   is_anaerobe <- grepl("anaerobe", df$`oxygen_tolerance.Oxygen tolerance`, ignore.case = TRUE)

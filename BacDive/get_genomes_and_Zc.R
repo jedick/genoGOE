@@ -1,4 +1,4 @@
-# bacdive/get_genomes.R
+# BacDive/get_genomes.R
 # Get protein sequences for genome accessions
 # 20260313 jmd
 

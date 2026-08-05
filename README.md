@@ -54,7 +54,7 @@ genoGOE_6(pdf = TRUE)
 
 [GMKK20](GMKK20): Data for extant and reconstructed ancestral nitrogenase sequences taken from [Garcia et al. (2020)](https://doi.org/10.1111/gbi.12381)
 
-- [nitrogenase_aa.csv](GMKK20/nitrogenase_aa.csv): Amino acid compositions computed from the [Extant-MLAnc_Align.fasta](https://github.com/kacarlab/AncientNitrogenase/blob/master/Extant-MLAnc_Align.fasta) file in the [kacarlab](https://github.com/kacarlab) GitHub repo
+- [nitrogenase_aa.csv](GMKK20/nitrogenase_aa.csv): Amino acid compositions computed from [Extant-MLAnc_Align.fasta](https://github.com/kacarlab/AncientNitrogenase/blob/master/Extant-MLAnc_Align.fasta).
 
 [PIZ+11](PIZ+11): Data for reconstructed ancestral thioredoxin sequences derived from [Perez-Jimenez et al. (2011)](https://doi.org/10.1038/nsmb.2020)
 
@@ -80,12 +80,12 @@ genoGOE_6(pdf = TRUE)
 
 [ACK25](ACK25): Reconstructed ancestral sequences of Rubisco from the [GitHub repo](https://github.com/kacarlab/RuBisCO_evolution) of [Amritkar et al. (2025)](https://doi.org/10.1093/molbev/msae268).
 
-[JSW07](JSW07): Digitization of the paleotemperature reconstruction from Fig. 15 of [Jaffrés et al., 2007](https://doi.org/10.1016/j.earscirev.2007.04.002).
+[JSW07](JSW07): Digitization of the paleotemperature reconstruction from Fig. 15 of [Jaffrés et al. (2007)](https://doi.org/10.1016/j.earscirev.2007.04.002).
 
-[IR24](IR24): Digitization of the paleotemperature reconstruction from Fig. 3B of [Isson and Rauzi, 2024](https://doi.org/10.1126/science.adg1366).
+[IR24](IR24): Digitization of the paleotemperature reconstruction from Fig. 3B of [Isson and Rauzi (2024)](https://doi.org/10.1126/science.adg1366).
 
-[RBH+26](RBH+26): Reconstructed ancestral sequences of nitrogenase sequences from the [GitHub repo](https://github.com/kacarlab/N-isotope) of [Rucker et al., 2026](https://doi.org/10.1038/s41467-025-67423-y).
+[RBH+26](RBH+26): Reconstructed ancestral sequences of nitrogenase sequences from the [GitHub repo](https://github.com/kacarlab/N-isotope) of [Rucker et al. (2026)](https://doi.org/10.1038/s41467-025-67423-y).
 
 ## BacDive analysis
 
-See [bacdive/README.md](bacdive/README.md)
+See [BacDive/README.md](BacDive/README.md)

@@ -12,6 +12,7 @@
 # 20250903 Add Zc range diagram
 # 20260313 Add BacDive analysis
 # 20260319 Move to GitHub (jedick/genoGOE)
+# 20260908 Write source data files
 
 # Figure 1: Ranges of carbon oxidation state for organic compounds, amino acids, and proteins
 genoGOE_1 <- function(pdf = FALSE) {
@@ -155,6 +156,11 @@ genoGOE_2 <- function(pdf = FALSE) {
   if(pdf) file <- "Figure_2.pdf" else file <- "Figure_2.png"
   ggplot2::ggsave(file, combined_plot, width = 10, height = 4, dpi = 300)
 
+  # Write source data 20260908
+  source_data <- plot_df[, c("strains.ID_strains", "strains.Species", "strains.Strain Designation",
+                             "culture_temp.Temperature", "Oxygen tolerance", "GC_content.GC-content", "Zc")]
+  write.csv(source_data, "Figure_2.csv", row.names = FALSE)
+
 }
 
 # Figure 3: Genome-wide differences of oxidation state between two lineages of methanogens
@@ -187,11 +193,13 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
   # NULL values for variables used in subset()
   protein <- gene <- NULL
 
+  # Function to get quantiles of Zc (1st quartile, median, 3rd quartile)
   get_Zc <- function(phylum = "Halo") {
     files <- file.path(methanogendir, "marker", "faa", paste0(markerid, ".faa.xz"))
     aalist <- lapply(files, function(file) {
       aa <- suppressMessages(canprot::read_fasta(file))
-      fivenum(canprot::Zc(subset(aa, protein %in% get(phylum))))
+      Zc <- canprot::Zc(subset(aa, protein %in% get(phylum)))
+      quantile(Zc, probs = c(0.25, 0.5, 0.75))
     })
     do.call(rbind, aalist)
   }
@@ -202,75 +210,87 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
       na <- suppressMessages(canprot::read_fasta(file, molecule = "DNA"))
       na <- subset(na, gene %in% get(phylum))
       GC <- (na$G + na$C) / (na$G + na$C + na$A + na$T)
-      fivenum(GC)
+      quantile(GC, probs = c(0.25, 0.5, 0.75))
     })
     do.call(rbind, nalist)
   }
 
-  # Get Zc for species in each phylum
+  # Get quartiles of Zc for species in each phylum
   Zc_Halo <- get_Zc("Halo")
   Zc_Methano <- get_Zc("Methano")
+  # Get quartiles of GC for species in each phylum
+  GC_Halo <- get_GC("Halo")
+  GC_Methano <- get_GC("Methano")
 
   # Order by median Zc of Methanobacteriota
-  iord <- order(Zc_Methano[, 3])
+  iord <- order(Zc_Methano[, 2])
   Zc_Halo <- Zc_Halo[iord, ]
   Zc_Methano <- Zc_Methano[iord, ]
+  GC_Halo <- GC_Halo[iord, ]
+  GC_Methano <- GC_Methano[iord, ]
+  markerid <- markerid[iord]
 
   if("A" %in% panels) {
     # Plot IQR of Zc
     plot(c(1, 53), c(-0.28, -0.04), xlab = "Marker gene", ylab = quote("Protein"~italic(Z)[C]), type = "n")
     for(i in 1:53) {
-      lines(c(i, i) - 0.1, Zc_Methano[i, c(2, 4)], col = 2)
-      lines(c(i, i) + 0.1, Zc_Halo[i, c(2, 4)], col = 4)
+      lines(c(i, i) - 0.1, Zc_Methano[i, c(1, 3)], col = 2)
+      lines(c(i, i) + 0.1, Zc_Halo[i, c(1, 3)], col = 4)
     }
     # Add legend for Class I and II methanogens
     legend("bottomright", "Class I", lty = 1, col = 2, bty = "n")
     legend("topleft", "Class II", lty = 1, col = 4, bty = "n")
     if(is.null(panel)) CHNOSZ::label.figure("A", font = 2, cex = 1.6)
     # Calculate p-value 20250304
-    # Use median value in each group (3rd column) and paired observations
-    p <- t.test(Zc_Halo[, 3], Zc_Methano[, 3], paired = TRUE)$p.value
+    # Use median value in each group (2nd column) and paired observations
+    p <- t.test(Zc_Halo[, 2], Zc_Methano[, 2], paired = TRUE)$p.value
     ptext <- bquote(italic(p) == .(signif(p, 2)))
     text(5, par("usr")[3], ptext, adj = c(0, -0.5))
   }
-
-  # Get GC for species in each phylum
-  GC_Halo <- get_GC("Halo")
-  GC_Methano <- get_GC("Methano")
-  GC_Halo <- GC_Halo[iord, ]
-  GC_Methano <- GC_Methano[iord, ]
 
   if("B" %in% panels) {
     # Plot IQR of GC
     plot(c(1, 53), c(0.25, 0.65), xlab = "Marker gene", ylab = "GC content", type = "n")
     for(i in 1:53) {
-      lines(c(i, i) - 0.1, GC_Methano[i, c(2, 4)], col = 2)
-      lines(c(i, i) + 0.1, GC_Halo[i, c(2, 4)], col = 4)
+      lines(c(i, i) - 0.1, GC_Methano[i, c(1, 3)], col = 2)
+      lines(c(i, i) + 0.1, GC_Halo[i, c(1, 3)], col = 4)
     }
     if(is.null(panel)) CHNOSZ::label.figure("B", font = 2, cex = 1.6)
     # Calculate p-value 20250304
-    # Use median value in each group (3rd column) and paired observations
-    p <- t.test(GC_Halo[, 3], GC_Methano[, 3], paired = TRUE)$p.value
+    # Use median value in each group (2nd column) and paired observations
+    p <- t.test(GC_Halo[, 2], GC_Methano[, 2], paired = TRUE)$p.value
     ptext <- bquote(italic(p) == .(signif(p, 2)))
     text(5, par("usr")[3], ptext, adj = c(0, -0.5))
   }
+
+  # Write source data 20260908
+  colnames(Zc_Methano) <- paste("Zc_Class_I", colnames(Zc_Methano), sep = "_")
+  colnames(Zc_Halo) <- paste("Zc_Class_II", colnames(Zc_Halo), sep = "_")
+  source_data_A <- cbind(data.frame(markerid), round(Zc_Methano, 6), round(Zc_Halo, 6))
+  write.csv(source_data_A, "Figure_3A.csv", row.names = FALSE)
+  colnames(GC_Methano) <- paste("GC_Class_I", colnames(GC_Methano), sep = "_")
+  colnames(GC_Halo) <- paste("GC_Class_II", colnames(GC_Halo), sep = "_")
+  source_data_B <- cbind(data.frame(markerid), round(GC_Methano, 6), round(GC_Halo, 6))
+  write.csv(source_data_B, "Figure_3B.csv", row.names = FALSE)
 
   # Panel C: Delta Zc for marker genes
 
   if("C" %in% panels) {
 
+    # Calculate median differences of Zc and GC
+    Delta_Zc <- Zc_Halo[, 2] - Zc_Methano[, 2]
+    Delta_GC <- GC_Halo[, 2] - GC_Methano[, 2]
+
     # If plotting only this panel, only make the abundance plot
     if(is.null(panel)) {
       # Plot Delta Zc vs Delta GC
       par(mar = c(4.1, 4.1, 1.1, 2.1))
-      Delta_Zc <- na.omit(Zc_Halo[, 3] - Zc_Methano[, 3])
-      Delta_GC <- na.omit(GC_Halo[, 3] - GC_Methano[, 3])
       plot(Delta_GC, Delta_Zc, xlab = quote(Delta*"GC"),
         ylab = quote(Delta*italic(Z)[C]~"(Class II - Class I)                                                         "),
         pch = 19, col = adjustcolor(1, alpha.f = 0.5), xpd = NA)
       # Calculate linear fit
       mylm <- lm(Delta_Zc ~ Delta_GC)
-      x <- range(Delta_GC)
+      x <- range(Delta_GC, na.rm = TRUE)
       y <- predict.lm(mylm, data.frame(Delta_GC = x))
       # Plot linear fit and show R2
       lines(x, y, lty = 2, lwd = 1.5, col = 8)
@@ -282,7 +302,6 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
 
     ylab <- if(is.null(panel)) "" else quote(Delta*italic(Z)[C]~"(Class II - Class I)")
     # Plot Delta Zc vs log10 protein abundance in M. maripaludis 20240531
-    Delta_Zc <- Zc_Halo[, 3] - Zc_Methano[, 3]
     abundance <- markerdat$Redundant.Peptides / markerdat$MW
     log10a <- log10(abundance)
     plot(log10a, Delta_Zc, xlab = quote(log[10]~"protein abundance in"~italic("M. maripaludis")), ylab = ylab, pch = 19, col = adjustcolor(1, alpha.f = 0.5))
@@ -297,6 +316,10 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
     R2 <- summary(mylm)$r.squared
     R2_txt <- bquote(italic(R)^2 == .(formatC(R2, digits = 2, format = "f")))
     legend("topleft", legend = R2_txt, bty = "n", inset = c(-0.05, 0))
+    
+    # Write source data 20260908
+    source_data_C <- cbind(data.frame(markerid), round(data.frame(Delta_Zc, Delta_GC, log10a), 6))
+    write.csv(source_data_C, "Figure_3C.csv", row.names = FALSE)
 
   }
 
@@ -363,7 +386,8 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
     text(0.6, bp$stats[1] + 0.008, "Class I")
     text(1.6, bp$stats[2] + 0.008, "Class II")
     # Add beans for GC and Cost
-    beanplot::beanplot(Zc[, 3:14], side = "both", col = list(c(2, 7, 2, 2), c(4, 3, 4, 4)), xlim = c(0.5, 7.5), what = what, names = character(6), add = TRUE, at = 2:7)
+    beanplot::beanplot(Zc[, 3:14], side = "both", col = list(c(2, 7, 2, 2), c(4, 3, 4, 4)),
+                       xlim = c(0.5, 7.5), what = what, names = character(6), add = TRUE, at = 2:7)
     mtext(quote("Protein"~italic(Z)[C]), 2, line = 2.8, cex = par("cex"))
 
     # Add group names
@@ -372,6 +396,12 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
     axis(3, at = c(1, 3, 6), labels = c("Entire genomes", "Binned by GC content", "Binned by metabolic cost"), tick = FALSE, font = 2)
 
     if(is.null(panel)) CHNOSZ::label.figure("D", font = 2, cex = 1.6, xfrac = 0.018)
+    
+    # Write source data 20260908
+    source_data <- Zc
+    colnames(Zc) <- gsub("Methano", "Class_I", colnames(Zc))
+    colnames(Zc) <- gsub("Halo", "Class_II", colnames(Zc))
+    write.csv(round(Zc, 6), "Figure_3D.csv")
 
   }
 
@@ -1649,3 +1679,21 @@ genoGOE_S3 <- function(pdf = FALSE) {
   if(pdf) dev.off()
 }
 
+# Convert all source data CSV files to a single Excel file 20260908
+source_data <- function() {
+
+  # Read CSV files
+  df_2 <- read.csv("Figure_2.csv", check.names = FALSE)
+  df_3A <- read.csv("Figure_3A.csv", check.names = FALSE)
+  df_3B <- read.csv("Figure_3B.csv", check.names = FALSE)
+  df_3C <- read.csv("Figure_3C.csv", check.names = FALSE)
+  df_3D <- read.csv("Figure_3D.csv", check.names = FALSE)
+
+  # Convert the data frames to an excel file
+  write.xlsx(df_2, "source_data.xlsx", sheetName = "Figure_2", row.names = FALSE)
+  write.xlsx(df_3A, "source_data.xlsx", sheetName="Figure_3A", append = TRUE)
+  write.xlsx(df_3B, "source_data.xlsx", sheetName="Figure_3B", append = TRUE)
+  write.xlsx(df_3C, "source_data.xlsx", sheetName="Figure_3C", row.names = FALSE, append = TRUE)
+  write.xlsx(df_3D, "source_data.xlsx", sheetName="Figure_3D", row.names = FALSE, append = TRUE)
+
+}

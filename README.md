@@ -5,17 +5,19 @@ This repository holds the code and source data for "Evolutionary oxidation of pr
 ## Requirements
 
 - R - download from [CRAN](https://cran.r-project.org)
-- R packages - install with `install.packages(c("canprot", "CHNOSZ", "plotrix", "beanplot", "ggplot2", "patchwork"))`
+- R packages - install with `install.packages(c("canprot", "CHNOSZ", "plotrix", "beanplot", "ggplot2", "patchwork", "xlsx"))`
   - canprot - provides `Zc()`, `read_fasta()`, and `Cost()`
   - CHNOSZ - provides `protein.formula()`, `as.chemical.formula()`, `expr.species()`, and `hyphen.in.pdf()`
   - plotrix - provides `smoothColors()` and `gradient.rect()`
   - beanplot - provides `beanplot()`
   - ggplot2 - provides plotting functions used in `genoGOE_2()`
   - patchwork - provides `plot_layout()`
+  - xlsx - provides `write.xlsx()`, used in `source_data()`
 
 ## Making the plots
 
 Set `pdf = TRUE` to make PDF files or leave as FALSE (the default) to make plots on screen.
+Each function saves source data for the plots in CSV files where applicable (e.g. `Figure_2.csv`).
 
 ```R
 source("genoGOE.R")
@@ -27,6 +29,14 @@ genoGOE_4(pdf = TRUE)
 genoGOE_5(pdf = TRUE)
 library(CHNOSZ)  # For thermodynamic calculations
 genoGOE_6(pdf = TRUE)
+```
+
+## Writing source data
+
+This step uses the CSV files produced above to create a single Excel source data file (`source_data.xlsx`).
+
+```R
+source_data()
 ```
 
 ## Data sources

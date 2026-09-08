@@ -460,6 +460,13 @@ genoGOE_4 <- function(pdf = FALSE) {
     Zc_mean <- colMeans(Zc_mat, na.rm = TRUE)
     Zc_sd <- apply(Zc_mat, 2, stats::sd, na.rm = TRUE)
 
+    # Write source data 20260908
+    source_data <- cbind(data.frame(modeAges$OSCODE[ilineage]), round(Zc_mat, 6))
+    colnames(source_data) <- c("OSCODE", modeAges[ilineage[1], 2:9][-3])
+    if(j == 1) filename <- "Figure_4A.csv"
+    if(j == 2) filename <- "Figure_4B.csv"
+    write.csv(source_data, filename, row.names = FALSE)
+
     # Add single lineage line and error bars
     mode_ages <- 1:ncol(Zc_mat)
     lines(mode_ages, Zc_mean, col = col[j], lwd = 2)
@@ -612,7 +619,8 @@ plot_rubisco <- function() {
   age <- c(3.8, 1.373)
   sub2age <- lm(age ~ sub)
   # Predict ages from branch lengths for ancestral sequences
-  ages <- predict(sub2age, newdata = data.frame(sub = head(tail(aa_sub, -1), -1)))
+  aa_subs <- head(tail(aa_sub, -1), -1)
+  ages <- predict(sub2age, newdata = data.frame(sub = aa_subs))
   # Make inverse model to get tick labels
   age2sub <- lm(sub ~ age)
 
@@ -649,6 +657,10 @@ plot_rubisco <- function() {
   mtext("aa subs/site", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
   mtext("A. Rubisco large subunit", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
   legend("topleft", "RAS: Kaçar et al. (2017)", bty = "n", title = "", inset = c(-0.023, 0), cex = 1.1)
+
+  # Write source data
+  source_data <- data.frame(protein = aa$protein, aa_subs, age = round(ages, 3), Zc = round(Zc_vals, 6))
+  write.csv(source_data, "Figure_5A.csv", row.names = FALSE)
 }
 
 # Plot Zc for ancestral and modern nitrogenases from Cuevas Zuviría et al. (2025)  20260715
@@ -707,6 +719,9 @@ plot_nitrogenase <- function() {
   axis(2, seq(-0.20, -0.12, 0.04), labels = FALSE)
   axis(2, c(-0.20, -0.12), tick = FALSE, las = 1)
 
+  # Initialize source data frame
+  source_data <- data.frame(node = all_nodes, aa_subs = aa_sub, age = round(ages, 3))
+
   # Loop over Nif subunits
   subunits <- c("D", "K", "H")
   for(i in 1:length(subunits)) {
@@ -734,6 +749,10 @@ plot_nitrogenase <- function() {
     # Add subunit labels
     text(ages[1], Zc_vals[1], subunits[i], adj = 1.8)
     text(ages[7], Zc_vals[7], subunits[i], adj = -0.8)
+    # Append source data
+    df = data.frame(Zc = round(Zc_vals, 6))
+    colnames(df) <- paste("Zc", subunits[i], sep = "_")
+    source_data <- cbind(source_data, df)
   }
 
   # Add legend
@@ -743,6 +762,10 @@ plot_nitrogenase <- function() {
   mtext("aa subs/site", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
   mtext("B. Nitrogenase subunits", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
   legend("topleft", "RAS: Cuevas Zuviría et al. (2025)\nand Rucker et al. (2026)", bty = "n", title = "", inset = c(-0.023, 0), cex = 1.1)
+
+  # Write source data
+  write.csv(source_data, "Figure_5B.csv", row.names = FALSE)
+
 }
 
 # Plot Zc for ancestral thioredoxins from Perez-Jimenez et al. (2011)  20250625
@@ -769,6 +792,7 @@ plot_thioredoxin <- function() {
     arrows(dat$Min[i_err], yvals[i_err], dat$Max[i_err], yvals[i_err],
       angle = 90, code = 3, length = 0.04
     )
+    return(c(dat$Min[i_err], dat$Max[i_err]))
   }
   # Add separate lines for each lineage
   for(lineage in c("Bacteria", "Arc-Euk")) {
@@ -777,7 +801,10 @@ plot_thioredoxin <- function() {
     pch <- get_stages("thioredoxin", aa[ilineage, ], return.pch = TRUE)
     points(dat$Age[ilineage], Zc[ilineage], pch = pch, bg = "black")
     lines(dat$Age[ilineage], Zc[ilineage], type = "b", pch = NA, col = 7)
-    add_age_error_bars(ilineage, Zc)
+    # Assemble source data
+    df <- data.frame(lineage = lineage, protein = dat$name[ilineage], age = dat$Age[ilineage],
+                     age_min = dat$Min[ilineage], age_max = dat$Max[ilineage], Zc = round(Zc[ilineage], 6))
+    if(lineage == "Bacteria") source_data <- df else source_data <- rbind(source_data, df)
   }
   text(3.5, -0.22, "Bacteria")
   text(2.5, -0.26, "Archaea+Eukaryota")
@@ -787,6 +814,9 @@ plot_thioredoxin <- function() {
   mtext("Age (Ga)", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
   mtext("C. Thioredoxin", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
   legend("topleft", CHNOSZ::hyphen.in.pdf("RAS: Perez-Jimenez et al. (2011)"), bty = "n", title = "", inset = c(-0.022, 0), cex = 1.1)
+
+  # Write source data
+  write.csv(source_data, "Figure_5C.csv", row.names = FALSE)
 }
 
 # Plot Zc of IPMDH from Cui et al. (2025)  20250407
@@ -834,6 +864,11 @@ plot_IPMDH <- function() {
   mtext("Age (Ga)", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
   mtext(CHNOSZ::hyphen.in.pdf("D. 3-isopropylmalate dehydrogenase (IPMDH)"), side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
   legend("topleft", "RAS: Cui et al. (2025)", bty = "n", title = "", inset = c(-0.025, 0), cex = 1.1)
+
+  # Write source data
+  source_data <- data.frame(protein = aa$protein, age = ages/1000,
+                            age_min = (ages-uncertainty)/1000, age_max = (ages+uncertainty)/1000, Zc = round(Zc, 6))
+  write.csv(source_data, "Figure_5D.csv", row.names = FALSE)
 }
 
 # Plot O2 curve from Lyons et al. (2024)  20260716
@@ -938,8 +973,8 @@ plot_temperature <- function() {
   axis(2, c(0, 40), tick = FALSE, las = 1)
 
   # Add line from IR24
-  dat <- read.csv("IR24/IR24_Fig3B.csv")
-  lines(dat$Age_Ga, dat$T_C, col = 4, lwd = 2)
+  df <- read.csv("IR24/IR24_Fig3B.csv")
+  lines(df$Age_Ga, df$T_C, col = 4, lwd = 2)
 
   # Add line from JSW07
   dat <- read.csv("JSW07/JSW07_Fig15.csv")
@@ -966,6 +1001,12 @@ plot_temperature <- function() {
   # Add legend
   legend("topleft", c("Jaffrés et al. (2007)", "Loess fit", "Isson and Rauzi (2024)"),
     lty = c(2, 3, 1), col = c(2, 1, 4), lwd = c(1.5, 1.5, 1.5), title = "", bty = "n", cex = 1.1)
+
+  # Write source data
+  df_1 <- data.frame(source = "Isson and Rauzi (2024)", Age_Ga = df$Age_Ga, T_C = df$T_C)
+  df_2 <- data.frame(source = "Jaffrés et al. (2007)", Age_Ga = dat$Age_Ma/1000, T_C = dat$T_C)
+  source_data <- rbind(df_1, df_2)
+  write.csv(source_data, "Figure_5F.csv", row.names = FALSE)
 }
 
 
@@ -1688,12 +1729,26 @@ source_data <- function() {
   df_3B <- read.csv("Figure_3B.csv", check.names = FALSE)
   df_3C <- read.csv("Figure_3C.csv", check.names = FALSE)
   df_3D <- read.csv("Figure_3D.csv", check.names = FALSE)
+  df_4A <- read.csv("Figure_4A.csv", check.names = FALSE)
+  df_4B <- read.csv("Figure_4B.csv", check.names = FALSE)
+  df_5A <- read.csv("Figure_5A.csv", check.names = FALSE)
+  df_5B <- read.csv("Figure_5B.csv", check.names = FALSE)
+  df_5C <- read.csv("Figure_5C.csv", check.names = FALSE)
+  df_5D <- read.csv("Figure_5D.csv", check.names = FALSE)
+  df_5F <- read.csv("Figure_5F.csv", check.names = FALSE)
 
   # Convert the data frames to an excel file
-  write.xlsx(df_2, "source_data.xlsx", sheetName = "Figure_2", row.names = FALSE)
-  write.xlsx(df_3A, "source_data.xlsx", sheetName="Figure_3A", append = TRUE)
-  write.xlsx(df_3B, "source_data.xlsx", sheetName="Figure_3B", append = TRUE)
-  write.xlsx(df_3C, "source_data.xlsx", sheetName="Figure_3C", row.names = FALSE, append = TRUE)
-  write.xlsx(df_3D, "source_data.xlsx", sheetName="Figure_3D", row.names = FALSE, append = TRUE)
+  write.xlsx(df_2, "source_data.xlsx", sheetName = "2", row.names = FALSE)
+  write.xlsx(df_3A, "source_data.xlsx", sheetName="3A", append = TRUE)
+  write.xlsx(df_3B, "source_data.xlsx", sheetName="3B", append = TRUE)
+  write.xlsx(df_3C, "source_data.xlsx", sheetName="3C", row.names = FALSE, append = TRUE)
+  write.xlsx(df_3D, "source_data.xlsx", sheetName="3D", row.names = FALSE, append = TRUE)
+  write.xlsx(df_4A, "source_data.xlsx", sheetName="4A", row.names = FALSE, append = TRUE)
+  write.xlsx(df_4B, "source_data.xlsx", sheetName="4B", row.names = FALSE, append = TRUE)
+  write.xlsx(df_5A, "source_data.xlsx", sheetName="5A", row.names = FALSE, append = TRUE)
+  write.xlsx(df_5B, "source_data.xlsx", sheetName="5B", row.names = FALSE, append = TRUE)
+  write.xlsx(df_5C, "source_data.xlsx", sheetName="5C", row.names = FALSE, append = TRUE)
+  write.xlsx(df_5D, "source_data.xlsx", sheetName="5D", row.names = FALSE, append = TRUE)
+  write.xlsx(df_5F, "source_data.xlsx", sheetName="5F", row.names = FALSE, append = TRUE)
 
 }

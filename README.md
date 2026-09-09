@@ -29,6 +29,9 @@ genoGOE_4(pdf = TRUE)
 genoGOE_5(pdf = TRUE)
 library(CHNOSZ)  # For thermodynamic calculations
 genoGOE_6(pdf = TRUE)
+genoGOE_S1(pdf = TRUE)
+genoGOE_S2(pdf = TRUE)
+genoGOE_S3(pdf = TRUE)
 ```
 
 ## Writing source data

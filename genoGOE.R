@@ -403,10 +403,11 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
     if(is.null(panel)) CHNOSZ::label.figure("D", font = 2, cex = 1.6, xfrac = 0.018)
     
     # Write source data 20260908
-    source_data <- Zc
     colnames(Zc) <- gsub("Methano", "Class_I", colnames(Zc))
     colnames(Zc) <- gsub("Halo", "Class_II", colnames(Zc))
-    write.csv(round(Zc, 6), "Figure_3D.csv")
+    source_data <- data.frame(genome = rownames(Zc), round(Zc, 6))
+    source_data$genome <- gsub(".Zc", "", source_data$genome, fixed = TRUE)
+    write.csv(source_data, "Figure_3D.csv", row.names = FALSE)
 
   }
 
@@ -806,6 +807,7 @@ plot_thioredoxin <- function() {
     pch <- get_stages("thioredoxin", aa[ilineage, ], return.pch = TRUE)
     points(dat$Age[ilineage], Zc[ilineage], pch = pch, bg = "black")
     lines(dat$Age[ilineage], Zc[ilineage], type = "b", pch = NA, col = 7)
+    add_age_error_bars(ilineage, Zc)
     # Assemble source data
     df <- data.frame(lineage = lineage, protein = dat$name[ilineage], age = dat$Age[ilineage],
                      age_min = dat$Min[ilineage], age_max = dat$Max[ilineage], Zc = round(Zc[ilineage], 6))
@@ -1597,10 +1599,17 @@ genoGOE_S1 <- function(pdf = FALSE) {
     Zc_ext <- canprot::Zc(aa_ext)
     xvals <- jitter(rep(iform, length(Zc_ext)), amount = 0.1)
     points(xvals, Zc_ext)
+    # Save source data
+    df1 <- data.frame(form = names(form_to_anc)[iform], type = "ancestral", protein = aa$protein[ianc], Zc = round(Zc_anc, 6))
+    df2 <- data.frame(form = names(form_to_anc)[iform], type = "extant", protein = aa$protein[iext], Zc = round(Zc_ext, 6))
+    df <- rbind(df1, df2)
+    if(iform == 1) source_data <- df else source_data <- rbind(source_data, df)
   }
   # Add legend
   legend("bottomright", c("Extant", "Ancestral"), pch = c(1, 19), bty = "n")
   label.figure("A", cex = 1.5, font = 2, xfrac = 0.02)
+  # Write source data 20260909
+  write.csv(source_data, "Figure_S1A.csv", row.names = FALSE)
 
   # Panel B: Cyanobacteria vs others for Nif-I 20260726
   par(mar = c(4, 4, 3, 1))
@@ -1626,6 +1635,11 @@ genoGOE_S1 <- function(pdf = FALSE) {
   legend("topleft", legend = bquote(italic(p) == .(signif(pval, 2))), bty = "n")
   title(CHNOSZ::hyphen.in.pdf("Extant Nif-I"), font.main = 1)
   label.figure("B", cex = 1.5, font = 2, yfrac = 0.92)
+  # Write source data 20260909
+  df1 <- data.frame(group = "Cyanobacteriota", protein = aa$protein[icyano], Zc = round(Zc_list[[1]], 6))
+  df2 <- data.frame(group = "Other phyla", protein = aa$protein[!icyano], Zc = round(Zc_list[[2]], 6))
+  source_data <- rbind(df1, df2)
+  write.csv(source_data, "Figure_S1B.csv", row.names = FALSE)
 
   # Panel C: Nif-I vs Nif-II 20260726
   aa <- read.csv("GMKK20/nitrogenase_aa.csv")
@@ -1642,6 +1656,11 @@ genoGOE_S1 <- function(pdf = FALSE) {
   legend("topright", legend = bquote(italic(p) == .(signif(pval, 2))), bty = "n")
   title(CHNOSZ::hyphen.in.pdf("Extant Nif-I vs Nif-II"), font.main = 1)
   label.figure("C", cex = 1.5, font = 2, yfrac = 0.92)
+  # Write source data 20260909
+  df1 <- data.frame(group = "Nif-I", protein = aa$protein[inifI], Zc = round(Zc_list[[1]], 6))
+  df2 <- data.frame(group = "Nif-II", protein = aa$protein[!inifI], Zc = round(Zc_list[[2]], 6))
+  source_data <- rbind(df1, df2)
+  write.csv(source_data, "Figure_S1C.csv", row.names = FALSE)
 
   if(pdf) dev.off()
 
@@ -1765,12 +1784,19 @@ source_data <- function() {
   df_5F <- read.csv("Figure_5F.csv", check.names = FALSE)
   df_6A <- read.csv("Figure_6A.csv", check.names = FALSE)
   df_6D <- read.csv("Figure_6D.csv", check.names = FALSE)
+  df_S1A <- read.csv("Figure_S1A.csv", check.names = FALSE)
+  df_S1B <- read.csv("Figure_S1B.csv", check.names = FALSE)
+  df_S1C <- read.csv("Figure_S1C.csv", check.names = FALSE)
+
+  # Add index columns for specific data frames
+  df_3A <- data.frame(index = row.names(df_3A), df_3A)
+  df_3B <- data.frame(index = row.names(df_3B), df_3B)
 
   # Convert the data frames to an excel file
   xlsx::write.xlsx(df_1, "source_data.xlsx", sheetName = "1", row.names = FALSE)
   xlsx::write.xlsx(df_2, "source_data.xlsx", sheetName = "2", row.names = FALSE, append = TRUE)
-  xlsx::write.xlsx(df_3A, "source_data.xlsx", sheetName="3A", append = TRUE)
-  xlsx::write.xlsx(df_3B, "source_data.xlsx", sheetName="3B", append = TRUE)
+  xlsx::write.xlsx(df_3A, "source_data.xlsx", sheetName="3A", row.names = FALSE, append = TRUE)
+  xlsx::write.xlsx(df_3B, "source_data.xlsx", sheetName="3B", row.names = FALSE, append = TRUE)
   xlsx::write.xlsx(df_3C, "source_data.xlsx", sheetName="3C", row.names = FALSE, append = TRUE)
   xlsx::write.xlsx(df_3D, "source_data.xlsx", sheetName="3D", row.names = FALSE, append = TRUE)
   xlsx::write.xlsx(df_4A, "source_data.xlsx", sheetName="4A", row.names = FALSE, append = TRUE)
@@ -1782,5 +1808,8 @@ source_data <- function() {
   xlsx::write.xlsx(df_5F, "source_data.xlsx", sheetName="5F", row.names = FALSE, append = TRUE)
   xlsx::write.xlsx(df_6A, "source_data.xlsx", sheetName="6A", row.names = FALSE, append = TRUE)
   xlsx::write.xlsx(df_6D, "source_data.xlsx", sheetName="6D", row.names = FALSE, append = TRUE)
+  xlsx::write.xlsx(df_S1A, "source_data.xlsx", sheetName="S1A", row.names = FALSE, append = TRUE)
+  xlsx::write.xlsx(df_S1B, "source_data.xlsx", sheetName="S1B", row.names = FALSE, append = TRUE)
+  xlsx::write.xlsx(df_S1C, "source_data.xlsx", sheetName="S1C", row.names = FALSE, append = TRUE)
 
 }

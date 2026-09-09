@@ -127,7 +127,7 @@ genoGOE_2 <- function(pdf = FALSE) {
       x = "Culture temperature (°C)",
       y = "GC content (%)",
       color = "Oxygen tolerance",
-      title = "A"
+      title = "a"
     ) +
     ggplot2::scale_color_manual(values = c("Anaerobe" = "2", "Non-anaerobe" = "4")) +
     ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
@@ -148,7 +148,7 @@ genoGOE_2 <- function(pdf = FALSE) {
       x = "Culture temperature (°C)",
       y = "Zc",
       color = "Oxygen tolerance",
-      title = "B"
+      title = "b"
     ) +
     ggplot2::scale_color_manual(values = c("Anaerobe" = "2", "Non-anaerobe" = "4")) +
     ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
@@ -176,7 +176,7 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
     mat <- matrix(c(1,2,3, 1,2,4, 5,5,5), nrow = 3, byrow = TRUE)
     layout(mat, heights = c(1, 1, 2))
   }
-  panels <- if(is.null(panel)) LETTERS[1:4] else panel
+  panels <- if(is.null(panel)) letters[1:4] else panel
   opar <- par(mgp = c(2.8, 1, 0), mar = c(5.1, 4.1, 2.1, 2.1))
 
   # Read methanogen genomes information
@@ -187,7 +187,7 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
   # Genomes in Methanobacteriota
   Methano <- mg$Genome[mg$Methanogen_class == "I"]
 
-  # Panels A-B: Zc and GC of marker genes 20240528
+  # Panels a-b: Zc and GC of marker genes 20240528
 
   # Read data for GTDB marker genes
   markerfile <- "GTDB/ar53_msa_marker_info_r220_XHZ+06.csv"
@@ -235,7 +235,7 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
   GC_Methano <- GC_Methano[iord, ]
   markerid <- markerid[iord]
 
-  if("A" %in% panels) {
+  if("a" %in% panels) {
     # Plot IQR of Zc
     plot(c(1, 53), c(-0.28, -0.04), xlab = "Marker gene", ylab = quote("Protein"~italic(Z)[C]), type = "n")
     for(i in 1:53) {
@@ -245,7 +245,7 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
     # Add legend for Class I and II methanogens
     legend("bottomright", "Class I", lty = 1, col = 2, bty = "n")
     legend("topleft", "Class II", lty = 1, col = 4, bty = "n")
-    if(is.null(panel)) CHNOSZ::label.figure("A", font = 2, cex = 1.6)
+    if(is.null(panel)) CHNOSZ::label.figure("a", font = 2, cex = 1.6)
     # Calculate p-value 20250304
     # Use median value in each group (2nd column) and paired observations
     p <- t.test(Zc_Halo[, 2], Zc_Methano[, 2], paired = TRUE)$p.value
@@ -253,14 +253,14 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
     text(5, par("usr")[3], ptext, adj = c(0, -0.5))
   }
 
-  if("B" %in% panels) {
+  if("b" %in% panels) {
     # Plot IQR of GC
     plot(c(1, 53), c(0.25, 0.65), xlab = "Marker gene", ylab = "GC content", type = "n")
     for(i in 1:53) {
       lines(c(i, i) - 0.1, GC_Methano[i, c(1, 3)], col = 2)
       lines(c(i, i) + 0.1, GC_Halo[i, c(1, 3)], col = 4)
     }
-    if(is.null(panel)) CHNOSZ::label.figure("B", font = 2, cex = 1.6)
+    if(is.null(panel)) CHNOSZ::label.figure("b", font = 2, cex = 1.6)
     # Calculate p-value 20250304
     # Use median value in each group (2nd column) and paired observations
     p <- t.test(GC_Halo[, 2], GC_Methano[, 2], paired = TRUE)$p.value
@@ -278,9 +278,9 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
   source_data_B <- cbind(data.frame(markerid), round(GC_Methano, 6), round(GC_Halo, 6))
   write.csv(source_data_B, "Figure_3B.csv", row.names = FALSE)
 
-  # Panel C: Delta Zc for marker genes
+  # Panel c: Delta Zc for marker genes
 
-  if("C" %in% panels) {
+  if("c" %in% panels) {
 
     # Calculate median differences of Zc and GC
     Delta_Zc <- Zc_Halo[, 2] - Zc_Methano[, 2]
@@ -302,7 +302,7 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
       R2 <- summary(mylm)$r.squared
       R2_txt <- bquote(italic(R)^2 == .(formatC(R2, digits = 2, format = "f")))
       legend("topleft", legend = R2_txt, bty = "n", inset = c(-0.05, 0))
-      if(is.null(panel)) CHNOSZ::label.figure("C", font = 2, cex = 1.6, yfrac = 0.9)
+      if(is.null(panel)) CHNOSZ::label.figure("c", font = 2, cex = 1.6, yfrac = 0.9)
     }
 
     ylab <- if(is.null(panel)) "" else quote(Delta*italic(Z)[C]~"(Class II - Class I)")
@@ -330,9 +330,9 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
 
   par(opar)
 
-  # Panel D: Zc controlled for various factors 20240529
+  # Panel d: Zc controlled for various factors 20240529
 
-  if("D" %in% panels) {
+  if("d" %in% panels) {
    
     # Get values of Zc, GC, and Cost
     genomes <- mg$Genome
@@ -400,7 +400,7 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
     axis(1, at = 5:7, labels = c("Cost < 23", "23 < Cost < 25", "Cost > 25"), gap.axis = 0)
     axis(3, at = c(1, 3, 6), labels = c("Entire genomes", "Binned by GC content", "Binned by metabolic cost"), tick = FALSE, font = 2)
 
-    if(is.null(panel)) CHNOSZ::label.figure("D", font = 2, cex = 1.6, xfrac = 0.018)
+    if(is.null(panel)) CHNOSZ::label.figure("d", font = 2, cex = 1.6, xfrac = 0.018)
     
     # Write source data 20260908
     colnames(Zc) <- gsub("Methano", "Class_I", colnames(Zc))
@@ -516,7 +516,7 @@ genoGOE_4 <- function(pdf = FALSE) {
     at <- seq_along(Mya)
     axis(Mya_axis, at, Mya)
     # Add plot label 20240803
-    CHNOSZ::label.plot(LETTERS[j], font = 2, cex = 1.2, xfrac = 0.04)
+    CHNOSZ::label.plot(letters[j], font = 2, cex = 1.2, xfrac = 0.04)
   }
   # Outer axis labels
   mtext(ylab, side = 2, line = 3, adj = -0.68, font = 2)
@@ -661,7 +661,7 @@ plot_rubisco <- function() {
   # Add axis labels and title
   mtext("Zc", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2)
   mtext("aa subs/site", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
-  mtext("A. Rubisco large subunit", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("a. Rubisco large subunit", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
   legend("topleft", "RAS: Kaçar et al. (2017)", bty = "n", title = "", inset = c(-0.023, 0), cex = 1.1)
 
   # Write source data
@@ -766,7 +766,7 @@ plot_nitrogenase <- function() {
   # Add axis labels and title
   mtext("Zc", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2)
   mtext("aa subs/site", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
-  mtext("B. Nitrogenase subunits", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("b. Nitrogenase subunits", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
   legend("topleft", "RAS: Cuevas Zuviría et al. (2025)\nand Rucker et al. (2026)", bty = "n", title = "", inset = c(-0.023, 0), cex = 1.1)
 
   # Write source data
@@ -819,7 +819,7 @@ plot_thioredoxin <- function() {
   # Add axis labels and title
   mtext("Zc", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2)
   mtext("Age (Ga)", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
-  mtext("C. Thioredoxin", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("c. Thioredoxin", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
   legend("topleft", CHNOSZ::hyphen.in.pdf("RAS: Perez-Jimenez et al. (2011)"), bty = "n", title = "", inset = c(-0.022, 0), cex = 1.1)
 
   # Write source data
@@ -869,7 +869,7 @@ plot_IPMDH <- function() {
   # Add axis labels and title
   mtext("Zc", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2)
   mtext("Age (Ga)", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
-  mtext(CHNOSZ::hyphen.in.pdf("D. 3-isopropylmalate dehydrogenase (IPMDH)"), side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext(CHNOSZ::hyphen.in.pdf("d. 3-isopropylmalate dehydrogenase (IPMDH)"), side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
   legend("topleft", "RAS: Cui et al. (2025)", bty = "n", title = "", inset = c(-0.025, 0), cex = 1.1)
 
   # Write source data
@@ -964,7 +964,7 @@ plot_oxygen <- function() {
   mtext(quote(bold("("*log[10])), side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2, adj = 0.9, padj = 0)
   mtext("PAL)", side = 2, las = 1, line = 1.5, font = 2, cex = par("cex") * 1.2, padj = 1.3)
   mtext("Age (Ga)", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
-  mtext("E. Atmospheric oxygen", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("e. Atmospheric oxygen", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
   legend("topleft", "Adapted from Lyons et al. (2024)", bty = "n", title = "", inset = c(-0.0215, 0), cex = 1.1)
 }
 
@@ -1003,7 +1003,7 @@ plot_temperature <- function() {
   # Add axis labels and title
   mtext(quote(bolditalic(T)~bold("("*degree*C*")")), side = 2, las = 1, line = 1.2, font = 2, cex = par("cex") * 1.2)
   mtext("Age (Ga)", side = 1, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
-  mtext("F. Ocean surface temperature", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
+  mtext("f. Ocean surface temperature", side = 3, line = -1.5, font = 2, adj = 0.01, cex = par("cex") * 1.2)
 
   # Add legend
   legend("topleft", c("Jaffrés et al. (2007)", "Loess fit", "Isson and Rauzi (2024)"),
@@ -1033,12 +1033,12 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     layout(mat, heights = c(5, 4, 5), widths = c(1,1,1, 1,1,1, 0.5))
     par(cex = 1)
   }
-  panels <- if(is.null(panel)) LETTERS[1:5] else panel
+  panels <- if(is.null(panel)) letters[1:5] else panel
   # Margin setting for CHNOSZ::diagram() (via plot_stability())
   mar <- c(3, 3.5, 2, 1)
 
-  # Panel A: Compare Zc of ancestral Rubisco sequences from different sources  20260717
-  if("A" %in% panels) {
+  # Panel a: Compare Zc of ancestral Rubisco sequences from different sources  20260717
+  if("a" %in% panels) {
     # Names of ancestral proteins
     anc_names <- list(
       KHAB17 = c("Anc_I/II/III", "Anc_I/III", "Anc_I/III'", "Anc_I", "Anc_IA/B", "Anc_IB"),
@@ -1112,7 +1112,7 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     text(6.6, -0.19, "Start GOE\n(Model 2)", adj = 0)
     # Add legend
     legend("topleft", c("Amritkar", "Schulz", "Kaçar"), pch = c(1, 15, 19), col = c(1, 4, 2), pt.cex = 1.5, bty = "n")
-    CHNOSZ::label.figure("A", cex = 1.5, font = 2, yfrac = 0.94)
+    CHNOSZ::label.figure("a", cex = 1.5, font = 2, yfrac = 0.94)
     par(opar)
 
     # Write source data 20260909
@@ -1120,7 +1120,7 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     write.csv(source_data, "Figure_6A.csv", row.names = FALSE)
   }
 
-  if("B" %in% panels) {
+  if("b" %in% panels) {
     # Rubisco relative stability
     plot_stability("rubisco_1_2", plot_names = FALSE, mar = mar, col = 3)
     plot_stability("rubisco_2_3", plot_names = FALSE, add = TRUE, col = 3)
@@ -1129,7 +1129,7 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     text(6, -68.5, "Stage 2")
     text(6, -66.3, "Stage 3")
     title("Rubisco", font.main = 1)
-    CHNOSZ::label.figure("B", cex = 1.5, font = 2, yfrac = 0.94)
+    CHNOSZ::label.figure("b", cex = 1.5, font = 2, yfrac = 0.94)
   }
 
   # Arrow for Rubisco redox evolution
@@ -1143,7 +1143,7 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     par(opar)
   }
 
-  if("C" %in% panels) {
+  if("c" %in% panels) {
     arrowfun <- function(y1, y2) {
       arrows(9.5, y1, 9.5, y2, length = 0.15)
       text(9.3, y2, "Time", adj = 1, font = 3)
@@ -1151,7 +1151,7 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
 
     plot_stability("nitrogenase", mar = mar, col = 4)
     title("Nitrogenase (D and K subunits)", font.main = 1)
-    CHNOSZ::label.figure("C", cex = 1.5, font = 2, yfrac = 0.94)
+    CHNOSZ::label.figure("c", cex = 1.5, font = 2, yfrac = 0.94)
 
     plot_stability("thioredoxin", mar = mar, col = 7)
     title("Thioredoxin (all lineages)", font.main = 1)
@@ -1276,16 +1276,16 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     diagram(amean, fill = fill, lty = 1, lwd = 2, font = 3, names = names, cex.names = 0.8, dx = dx, dy = dy, col = "gray20", balance = 1)
   }
 
-  if("D" %in% panels) {
+  if("d" %in% panels) {
     sulfur_Zc()
-    if(is.null(panel)) CHNOSZ::label.figure("D", font = 2, cex = 1.6, yfrac = 0.94)
+    if(is.null(panel)) CHNOSZ::label.figure("d", font = 2, cex = 1.6, yfrac = 0.94)
   }
-  if("E" %in% panels) {
+  if("e" %in% panels) {
     sulfur_affinity(panel)
     # Add Eh7 axis
     add_Eh7_axis(las = 0)
     title(main = CHNOSZ::hyphen.in.pdf("        All proteins in genomes with specific S-cycling genes"), font.main = 1)
-    CHNOSZ::label.figure("E", font = 2, cex = 1.6, yfrac = 0.94)
+    CHNOSZ::label.figure("e", font = 2, cex = 1.6, yfrac = 0.94)
   }
 
   if(pdf & is.null(panel)) dev.off()
@@ -1607,11 +1607,11 @@ genoGOE_S1 <- function(pdf = FALSE) {
   }
   # Add legend
   legend("bottomright", c("Extant", "Ancestral"), pch = c(1, 19), bty = "n")
-  label.figure("A", cex = 1.5, font = 2, xfrac = 0.02)
+  label.figure("a", cex = 1.5, font = 2, xfrac = 0.02)
   # Write source data 20260909
   write.csv(source_data, "Figure_S1A.csv", row.names = FALSE)
 
-  # Panel B: Cyanobacteria vs others for Nif-I 20260726
+  # Panel b: Cyanobacteria vs others for Nif-I 20260726
   par(mar = c(4, 4, 3, 1))
   # Read CSV again to get all proteins
   aa <- read.csv("GMKK20/nitrogenase_aa.csv")
@@ -1634,14 +1634,14 @@ genoGOE_S1 <- function(pdf = FALSE) {
   pval <- t.test(Zc_list[[1]], Zc_list[[2]], alternative = "greater")$p.value
   legend("topleft", legend = bquote(italic(p) == .(signif(pval, 2))), bty = "n")
   title(CHNOSZ::hyphen.in.pdf("Extant Nif-I"), font.main = 1)
-  label.figure("B", cex = 1.5, font = 2, yfrac = 0.92)
+  label.figure("b", cex = 1.5, font = 2, yfrac = 0.92)
   # Write source data 20260909
   df1 <- data.frame(group = "Cyanobacteriota", protein = aa$protein[icyano], Zc = round(Zc_list[[1]], 6))
   df2 <- data.frame(group = "Other phyla", protein = aa$protein[!icyano], Zc = round(Zc_list[[2]], 6))
   source_data <- rbind(df1, df2)
   write.csv(source_data, "Figure_S1B.csv", row.names = FALSE)
 
-  # Panel C: Nif-I vs Nif-II 20260726
+  # Panel c: Nif-I vs Nif-II 20260726
   aa <- read.csv("GMKK20/nitrogenase_aa.csv")
   aa <- aa[sapply(aa$ref %in% c("Nif-I", "Nif-II"), isTRUE), ]
   inifI <- aa$ref == "Nif-I"
@@ -1655,7 +1655,7 @@ genoGOE_S1 <- function(pdf = FALSE) {
   pval <- t.test(Zc_list[[1]], Zc_list[[2]], alternative = "greater")$p.value
   legend("topright", legend = bquote(italic(p) == .(signif(pval, 2))), bty = "n")
   title(CHNOSZ::hyphen.in.pdf("Extant Nif-I vs Nif-II"), font.main = 1)
-  label.figure("C", cex = 1.5, font = 2, yfrac = 0.92)
+  label.figure("c", cex = 1.5, font = 2, yfrac = 0.92)
   # Write source data 20260909
   df1 <- data.frame(group = "Nif-I", protein = aa$protein[inifI], Zc = round(Zc_list[[1]], 6))
   df2 <- data.frame(group = "Nif-II", protein = aa$protein[!inifI], Zc = round(Zc_list[[2]], 6))
@@ -1687,7 +1687,7 @@ genoGOE_S2 <- function(pdf = FALSE) {
   # Set plot resolution
   res <- 200
   
-  # Panel A: Pairwise stability boundaries for Rubisco
+  # Panel a: Pairwise stability boundaries for Rubisco
   # Loop over individual pairs
   for(pre in 1:3) {
     for(post in 4:6) {
@@ -1714,9 +1714,9 @@ genoGOE_S2 <- function(pdf = FALSE) {
   text(5.2, 0.62, "Higher affinity\nfor Form I protein\nin each pair")
   text(4.8, -0.15, "Higher affinity for\nForm I/(II)/III protein in each pair", srt = -21)
   title("Pairwise Rubiscos", font.main = 1)
-  label.figure("A", cex = 1.5, font = 2, yfrac = 0.92)
+  label.figure("a", cex = 1.5, font = 2, yfrac = 0.92)
 
-  # Panel B: Groupwise stability boundary (Eh-pH diagram)
+  # Panel b: Groupwise stability boundary (Eh-pH diagram)
   # Calculate affinity of composition reactions for all proteins
   aout <- affinity(pH = c(0, 14, res), Eh = c(-0.5, 0.8, res), iprotein = ip)
   # Set up groups for affinity aggregation:
@@ -1727,16 +1727,16 @@ genoGOE_S2 <- function(pdf = FALSE) {
   text(6, -0.18, "Higher mean affinity\nfor Form I/(II)/III proteins", srt = -21)
   text(6.5, 0.1, "Higher mean affinity\nfor Form I proteins", srt = -21)
   title("Groupwise Rubiscos", font.main = 1)
-  label.figure("B", cex = 1.5, font = 2, yfrac = 0.92)
+  label.figure("b", cex = 1.5, font = 2, yfrac = 0.92)
 
-  # Panel C: Groupwise stability boundary (logfO2-pH diagram)
+  # Panel c: Groupwise stability boundary (logfO2-pH diagram)
   par(mar = c(3, 3.5, 2.5, 3))
   plot_stability("rubisco_old", plot_names = FALSE, col = 3, O2lim = c(-70, -58))
   text(6.5, -64, "Higher mean affinity\nfor Form I/(II)/III proteins")
   text(5.5, -60, "Higher mean affinity\nfor Form I proteins")
   add_Eh7_axis()
   title("Groupwise Rubiscos", font.main = 1)
-  label.figure("C", cex = 1.5, font = 2, yfrac = 0.92)
+  label.figure("c", cex = 1.5, font = 2, yfrac = 0.92)
 
   if(pdf) dev.off()
 
@@ -1755,12 +1755,12 @@ genoGOE_S3 <- function(pdf = FALSE) {
   text(6, -66, "Stage 3")
   abline(h = -62, lty = 2, col = 8)
   text(7, -61, "Upper limit of Fig. 6B", font = 3)
-  label.figure("A", cex = 1.5, font = 2, yfrac = 0.94)
+  label.figure("a", cex = 1.5, font = 2, yfrac = 0.94)
   title("Kaçar et al. (2017)", font.main = 1)
   # Amritkar et al., 2025
   plot_stability("rubisco_ACK25", O2lim = c(-72.5, -40), col = 3)
   abline(h = -62, lty = 2, col = 8)
-  label.figure("B", cex = 1.5, font = 2, yfrac = 0.94)
+  label.figure("b", cex = 1.5, font = 2, yfrac = 0.94)
   title("Amritkar et al. (2025)", font.main = 1)
   if(pdf) dev.off()
 }

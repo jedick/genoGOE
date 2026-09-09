@@ -10,14 +10,15 @@ This repository holds the code and source data for "Evolutionary oxidation of pr
   - CHNOSZ 2.3.0 - provides `protein.formula()`, `as.chemical.formula()`, `expr.species()`, and `hyphen.in.pdf()`
   - plotrix 3.8.14 - provides `smoothColors()` and `gradient.rect()`
   - beanplot 1.3.1 - provides `beanplot()`
-  - ggplot2 4.0.3 - provides plotting functions used in `genoGOE_2()`
+  - ggplot2 4.0.3 - provides various plotting functions
   - patchwork 1.3.2 - provides `plot_layout()`
-  - xlsx 0.6.5 - provides `write.xlsx()`, used in `source_data()`
+  - xlsx 0.6.5 - provides `write.xlsx()` (used in `source_data()`)
 
 ## Making the plots
 
 Set `pdf = TRUE` to make PDF files or leave as FALSE (the default) to make plots on screen.
-Each function saves source data for the plots in CSV files where applicable (e.g. `Figure_2.csv`).
+Each function saves source data for the plots in CSV files where applicable (e.g. `Figure_1.csv`).
+Total time to make all plots is about 20 seconds.
 
 ```R
 source("genoGOE.R")

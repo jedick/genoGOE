@@ -4,15 +4,15 @@ This repository holds the code and source data for "Evolutionary oxidation of pr
 
 ## Requirements
 
-- R - download from [CRAN](https://cran.r-project.org)
+- R 4.6.1 - download from [CRAN](https://cran.r-project.org)
 - R packages - install with `install.packages(c("canprot", "CHNOSZ", "plotrix", "beanplot", "ggplot2", "patchwork", "xlsx"))`
-  - canprot - provides `Zc()`, `read_fasta()`, and `Cost()`
-  - CHNOSZ - provides `protein.formula()`, `as.chemical.formula()`, `expr.species()`, and `hyphen.in.pdf()`
-  - plotrix - provides `smoothColors()` and `gradient.rect()`
-  - beanplot - provides `beanplot()`
-  - ggplot2 - provides plotting functions used in `genoGOE_2()`
-  - patchwork - provides `plot_layout()`
-  - xlsx - provides `write.xlsx()`, used in `source_data()`
+  - canprot 2.0.0 - provides `Zc()`, `read_fasta()`, and `Cost()`
+  - CHNOSZ 2.3.0 - provides `protein.formula()`, `as.chemical.formula()`, `expr.species()`, and `hyphen.in.pdf()`
+  - plotrix 3.8.14 - provides `smoothColors()` and `gradient.rect()`
+  - beanplot 1.3.1 - provides `beanplot()`
+  - ggplot2 4.0.3 - provides plotting functions used in `genoGOE_2()`
+  - patchwork 1.3.2 - provides `plot_layout()`
+  - xlsx 0.6.5 - provides `write.xlsx()`, used in `source_data()`
 
 ## Making the plots
 

@@ -87,6 +87,11 @@ genoGOE_1 <- function(pdf = FALSE) {
   text(xs[3] + 1.1, mean(c(ybottom, ytop)), E_coli_txt, cex = 2, adj = 0, font = 3)
 
   if(pdf) dev.off()
+
+  # Write source data 20260908
+  uniprot <- gsub("sp|", "", aa$protein, fixed = TRUE)
+  source_data <- data.frame(uniprot, Zc = round(Zc, 6))
+  write.csv(source_data, "Figure_1.csv", row.names = FALSE)
 }
 
 # Figure 2: Correlation of GC content and Zc with features from BacDive database
@@ -1070,7 +1075,10 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     Zc_vals <- canprot::Zc(aa)
     # Add points
     lines(ages, Zc_vals, lwd = 2, cex = 1.5, pch = 19, col = 2, type = "b")
-    # Plot Zc for ancestral sequences from Amritkar et al., 2025  20260713
+    # Save source data
+    df_1 <- data.frame(source = "Kaçar et al. (2017)", protein = anc_names$KHAB17, Zc = round(Zc_vals, 6))
+
+    # Plot Zc for ancestral sequences from Amritkar et al. (2025)  20260713
     seq_dir <- "ACK25"
     # Get Zc of LSU ancestors
     Zc_LSU <- numeric()
@@ -1084,11 +1092,15 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     # Add points
     ages <- anc_ages$ACK25
     lines(ages, Zc_LSU, lwd = 2, cex = 1.5, type = "b")
-    # Plot Zc for ancestral sequences from Schulz et al., 2022  20260713
+    df_2 <- data.frame(source = "Amritkar et al. (2025)", protein = anc_names$ACK25, Zc = round(Zc_LSU, 6))
+
+    # Plot Zc for ancestral sequences from Schulz et al. (2022)  20260713
     aa <- canprot::read_fasta("SGZ+22/sequences.fasta")
     stopifnot(all.equal(aa$protein, anc_names$"SGZ+22"))
     Zc_vals <- canprot::Zc(aa)
     lines(anc_ages$"SGZ+22", Zc_vals, lwd = 2, cex = 1.5, pch = 15, col = 4, type = "b")
+    df_3 <- data.frame(source = "Schulz et al. (2022)", protein = anc_names$"SGZ+22", Zc = round(Zc_vals, 6))
+
     # Add lines and text for stages
     abline(v = c(3.5, 6.5), lty = 2, lwd = 2, col = 8)
     text(2, -0.09, "Stage 1", font = 3, col = 8, xpd = NA)
@@ -1100,6 +1112,10 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
     legend("topleft", c("Amritkar", "Schulz", "Kaçar"), pch = c(1, 15, 19), col = c(1, 4, 2), pt.cex = 1.5, bty = "n")
     CHNOSZ::label.figure("A", cex = 1.5, font = 2, yfrac = 0.94)
     par(opar)
+
+    # Write source data 20260909
+    source_data <- rbind(df_1, df_2, df_3)
+    write.csv(source_data, "Figure_6A.csv", row.names = FALSE)
   }
 
   if("B" %in% panels) {
@@ -1196,6 +1212,16 @@ genoGOE_6 <- function(pdf = FALSE, panel = NULL) {
   mdd <- "#c24a96"
   # Colors for protein groups
   col <- c(dsr, sox, sox, dsr, mdd, mdd, mdd)
+
+  # Write source data 20260909
+  source_data <- do.call(
+    rbind,
+    lapply(names(genomes), function(gene) {
+      # Add the list name as a new column
+      data.frame(genome = genomes[[gene]], gene = gene, Zc = round(Zclist[[gene]], 6))
+    })
+  )
+  write.csv(source_data, "Figure_6D.csv", row.names = FALSE)
 
   # Plot Zc of genomes with S-cycling genes from Mateos et al. (2023)  20240916
   sulfur_Zc <- function() {
@@ -1724,6 +1750,7 @@ genoGOE_S3 <- function(pdf = FALSE) {
 source_data <- function() {
 
   # Read CSV files
+  df_1 <- read.csv("Figure_1.csv", check.names = FALSE)
   df_2 <- read.csv("Figure_2.csv", check.names = FALSE)
   df_3A <- read.csv("Figure_3A.csv", check.names = FALSE)
   df_3B <- read.csv("Figure_3B.csv", check.names = FALSE)
@@ -1736,19 +1763,24 @@ source_data <- function() {
   df_5C <- read.csv("Figure_5C.csv", check.names = FALSE)
   df_5D <- read.csv("Figure_5D.csv", check.names = FALSE)
   df_5F <- read.csv("Figure_5F.csv", check.names = FALSE)
+  df_6A <- read.csv("Figure_6A.csv", check.names = FALSE)
+  df_6D <- read.csv("Figure_6D.csv", check.names = FALSE)
 
   # Convert the data frames to an excel file
-  write.xlsx(df_2, "source_data.xlsx", sheetName = "2", row.names = FALSE)
-  write.xlsx(df_3A, "source_data.xlsx", sheetName="3A", append = TRUE)
-  write.xlsx(df_3B, "source_data.xlsx", sheetName="3B", append = TRUE)
-  write.xlsx(df_3C, "source_data.xlsx", sheetName="3C", row.names = FALSE, append = TRUE)
-  write.xlsx(df_3D, "source_data.xlsx", sheetName="3D", row.names = FALSE, append = TRUE)
-  write.xlsx(df_4A, "source_data.xlsx", sheetName="4A", row.names = FALSE, append = TRUE)
-  write.xlsx(df_4B, "source_data.xlsx", sheetName="4B", row.names = FALSE, append = TRUE)
-  write.xlsx(df_5A, "source_data.xlsx", sheetName="5A", row.names = FALSE, append = TRUE)
-  write.xlsx(df_5B, "source_data.xlsx", sheetName="5B", row.names = FALSE, append = TRUE)
-  write.xlsx(df_5C, "source_data.xlsx", sheetName="5C", row.names = FALSE, append = TRUE)
-  write.xlsx(df_5D, "source_data.xlsx", sheetName="5D", row.names = FALSE, append = TRUE)
-  write.xlsx(df_5F, "source_data.xlsx", sheetName="5F", row.names = FALSE, append = TRUE)
+  xlsx::write.xlsx(df_1, "source_data.xlsx", sheetName = "1", row.names = FALSE)
+  xlsx::write.xlsx(df_2, "source_data.xlsx", sheetName = "2", row.names = FALSE, append = TRUE)
+  xlsx::write.xlsx(df_3A, "source_data.xlsx", sheetName="3A", append = TRUE)
+  xlsx::write.xlsx(df_3B, "source_data.xlsx", sheetName="3B", append = TRUE)
+  xlsx::write.xlsx(df_3C, "source_data.xlsx", sheetName="3C", row.names = FALSE, append = TRUE)
+  xlsx::write.xlsx(df_3D, "source_data.xlsx", sheetName="3D", row.names = FALSE, append = TRUE)
+  xlsx::write.xlsx(df_4A, "source_data.xlsx", sheetName="4A", row.names = FALSE, append = TRUE)
+  xlsx::write.xlsx(df_4B, "source_data.xlsx", sheetName="4B", row.names = FALSE, append = TRUE)
+  xlsx::write.xlsx(df_5A, "source_data.xlsx", sheetName="5A", row.names = FALSE, append = TRUE)
+  xlsx::write.xlsx(df_5B, "source_data.xlsx", sheetName="5B", row.names = FALSE, append = TRUE)
+  xlsx::write.xlsx(df_5C, "source_data.xlsx", sheetName="5C", row.names = FALSE, append = TRUE)
+  xlsx::write.xlsx(df_5D, "source_data.xlsx", sheetName="5D", row.names = FALSE, append = TRUE)
+  xlsx::write.xlsx(df_5F, "source_data.xlsx", sheetName="5F", row.names = FALSE, append = TRUE)
+  xlsx::write.xlsx(df_6A, "source_data.xlsx", sheetName="6A", row.names = FALSE, append = TRUE)
+  xlsx::write.xlsx(df_6D, "source_data.xlsx", sheetName="6D", row.names = FALSE, append = TRUE)
 
 }

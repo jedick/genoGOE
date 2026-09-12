@@ -14,6 +14,23 @@
 # 20260319 Move to GitHub (jedick/genoGOE)
 # 20260908 Write source data files
 
+# Helper function for formatting values in scientific notation 20260912
+# 1e-4 -> quote(1.0 %*% 10^-4)
+scinot <- function(val, digits = 1) {
+  # Get the exponent and coefficient
+  exp <- floor(log10(abs(val)))
+  coef <- val / 10^exp
+  # If the exponent is small (absolute value < 2), then don't use scientific notation
+  if(abs(exp) < 2) {
+    formatC(val, digits = digits + 1, format = "f")
+  } else {
+    # Use specified number of digits for coefficient
+    coef <- formatC(coef, digits = digits, format = "f")
+    # Create math expression
+    bquote(.(coef) %*% 10^.(exp))
+  }
+}
+
 # Figure 1: Ranges of carbon oxidation state for organic compounds, amino acids, and proteins
 genoGOE_1 <- function(pdf = FALSE) {
 
@@ -249,7 +266,7 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
     # Calculate p-value 20250304
     # Use median value in each group (2nd column) and paired observations
     p <- t.test(Zc_Halo[, 2], Zc_Methano[, 2], paired = TRUE)$p.value
-    ptext <- bquote(italic(p) == .(signif(p, 2)))
+    ptext <- bquote(italic(p) == .(scinot(p)))
     text(5, par("usr")[3], ptext, adj = c(0, -0.5))
   }
 
@@ -264,7 +281,7 @@ genoGOE_3 <- function(pdf = FALSE, panel = NULL) {
     # Calculate p-value 20250304
     # Use median value in each group (2nd column) and paired observations
     p <- t.test(GC_Halo[, 2], GC_Methano[, 2], paired = TRUE)$p.value
-    ptext <- bquote(italic(p) == .(signif(p, 2)))
+    ptext <- bquote(italic(p) == .(scinot(p)))
     text(5, par("usr")[3], ptext, adj = c(0, -0.5))
   }
 
@@ -776,8 +793,15 @@ plot_nitrogenase <- function() {
 
 # Plot Zc for ancestral thioredoxins from Perez-Jimenez et al. (2011)  20250625
 plot_thioredoxin <- function() {
-  # Read data file with ages and PDB IDs from Del Galdo et al. (2019)
+  # Read data file with PDB IDs from Del Galdo et al. (2019)
   dat <- read.csv("PIZ+11/DAAD19.csv")
+  # Read divergence times from TimeTree
+  tt <- read.csv("PIZ+11/divergence_times.csv")
+  # Filter to remove an exceptionally young age for AECA
+  # (archeal-eukaryotic common ancestor)
+  # that would make its median age less than that of LACA
+  # (last archaeal common ancestor)
+  tt <- tt[!(tt$Node == "AECA" & tt$Time == 1840), ]
   # Read amino acid compositions
   aa <- canprot::read_fasta("PIZ+11/thioredoxin.fasta")
   aa$protein <- dat$name
@@ -792,25 +816,34 @@ plot_thioredoxin <- function() {
   axis(2, seq(-0.30, -0.15, 0.05), labels = FALSE)
   axis(2, c(-0.30, -0.15), tick = FALSE, las = 1)
 
-  # Helper to draw horizontal age uncertainty bars (skip time-zero points)
-  add_age_error_bars <- function(i, yvals) {
-    i_err <- i & !(dat$Age == 0 & dat$Min == 0 & dat$Max == 0)
-    arrows(dat$Min[i_err], yvals[i_err], dat$Max[i_err], yvals[i_err],
-      angle = 90, code = 3, length = 0.04
-    )
-    return(c(dat$Min[i_err], dat$Max[i_err]))
+  # Helper function to get TimeTree age quartiles for given node (Q = 2 for median)
+  get_ages <- function(node, Q = 2) {
+    itt <- tt$Node == node
+    # If there's no match, return 0 (e.g. for E. coli)
+    value <- 0
+    if(any(itt)) value <- quantile(tt$Time[itt], probs = seq(0.25, 0.75, 0.25))[Q] / 1000
+    return(value)
   }
-  # Add separate lines for each lineage
+  # Loop over lineages
   for(lineage in c("Bacteria", "Arc-Euk")) {
     ilineage <- dat$Lineage == lineage
+    # Get median values of TimeTree divergence times
+    Q2 <- sapply(dat$name[ilineage], get_ages)
     # Add points and lines
     pch <- get_stages("thioredoxin", aa[ilineage, ], return.pch = TRUE)
-    points(dat$Age[ilineage], Zc[ilineage], pch = pch, bg = "black")
-    lines(dat$Age[ilineage], Zc[ilineage], type = "b", pch = NA, col = 7)
-    add_age_error_bars(ilineage, Zc)
+    points(Q2, Zc[ilineage], pch = pch, bg = "black")
+    lines(Q2, Zc[ilineage], type = "b", pch = NA, col = 7)
+    # Get 1st and 3rd quartiles for IQR
+    Q1 <- sapply(dat$name[ilineage], get_ages, Q = 1)
+    Q3 <- sapply(dat$name[ilineage], get_ages, Q = 3)
+    # Plot error bars for IQR; suppress warnings for
+    # "zero-length arrow is of indeterminate angle and so skipped"
+    suppressWarnings(arrows(Q1, Zc[ilineage], Q3, Zc[ilineage], angle = 90, code = 3, length = 0.04))
+    # Get number of ages for TimeTree divergence times
+    n_ages <- sapply(dat$name[ilineage], function(node) sum(tt$Node == node))
     # Assemble source data
-    df <- data.frame(lineage = lineage, protein = dat$name[ilineage], age = dat$Age[ilineage],
-                     age_min = dat$Min[ilineage], age_max = dat$Max[ilineage], Zc = round(Zc[ilineage], 6))
+    df <- data.frame(lineage = lineage, protein = dat$name[ilineage], n_ages = n_ages, age_median = Q2,
+                     age_Q1 = Q1, age_Q3 = Q3, Zc = round(Zc[ilineage], 6))
     if(lineage == "Bacteria") source_data <- df else source_data <- rbind(source_data, df)
   }
   text(3.5, -0.22, "Bacteria")
@@ -1408,7 +1441,7 @@ plot_stability <- function(dataset = "rubisco", res = 200, pHlim = c(4, 10), O2l
   }
 
   if(dataset %in% c("thioredoxin", "thioredoxin_A", "thioredoxin_B", "thioredoxin_B_1_2", "thioredoxin_B_2_3")) {
-    # Read data file with ages and PDB IDs from Del Galdo et al. (2019)
+    # Read data file with PDB IDs from Del Galdo et al. (2019)
     dat <- read.csv("PIZ+11/DAAD19.csv")
     # Read amino acid compositions
     aa <- canprot::read_fasta("PIZ+11/thioredoxin.fasta")
@@ -1632,7 +1665,7 @@ genoGOE_S1 <- function(pdf = FALSE) {
   names(Zc_list)[2] <- paste0("Other phyla\n(", length(Zc_list[[2]]), ")")
   axis(1, at = 1:2, labels = names(Zc_list), mgp = c(3, 2, 0))
   pval <- t.test(Zc_list[[1]], Zc_list[[2]], alternative = "greater")$p.value
-  legend("topleft", legend = bquote(italic(p) == .(signif(pval, 2))), bty = "n")
+  legend("topleft", legend = bquote(italic(p) == .(scinot(pval))), bty = "n")
   title(CHNOSZ::hyphen.in.pdf("Extant Nif-I"), font.main = 1)
   label.figure("b", cex = 1.5, font = 2, yfrac = 0.92)
   # Write source data 20260909
@@ -1653,7 +1686,7 @@ genoGOE_S1 <- function(pdf = FALSE) {
   names(Zc_list)[2] <- CHNOSZ::hyphen.in.pdf(paste0("Nif-II (", length(Zc_list[[2]]), ")"))
   boxplot(Zc_list, ylab = "Zc")
   pval <- t.test(Zc_list[[1]], Zc_list[[2]], alternative = "greater")$p.value
-  legend("topright", legend = bquote(italic(p) == .(signif(pval, 2))), bty = "n")
+  legend("topright", legend = bquote(italic(p) == .(scinot(pval))), bty = "n")
   title(CHNOSZ::hyphen.in.pdf("Extant Nif-I vs Nif-II"), font.main = 1)
   label.figure("c", cex = 1.5, font = 2, yfrac = 0.92)
   # Write source data 20260909
@@ -1754,7 +1787,7 @@ genoGOE_S3 <- function(pdf = FALSE) {
   text(6, -70, "Stage 2")
   text(6, -66, "Stage 3")
   abline(h = -62, lty = 2, col = 8)
-  text(7, -61, "Upper limit of Fig. 6B", font = 3)
+  text(7, -61, "Upper limit of Fig. 6b", font = 3)
   label.figure("a", cex = 1.5, font = 2, yfrac = 0.94)
   title("Kaçar et al. (2017)", font.main = 1)
   # Amritkar et al., 2025

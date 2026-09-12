@@ -73,7 +73,8 @@ source_data()
 [PIZ+11](PIZ+11): Data for reconstructed ancestral thioredoxin sequences derived from [Perez-Jimenez et al. (2011)](https://doi.org/10.1038/nsmb.2020)
 
 - [thioredoxin.fasta](PIZ+11/thioredoxin.fasta): Protein sequences obtained from the RCSB PDB using the accessions listed in the next file.
-- [DAAD19.csv](PIZ+11/DAAD19.csv): RCSB PDB IDs and ages for proteins listed by [Del Galdo et al. (2019)](https://doi.org/10.1007/s00239-019-09894-4).
+- [DAAD19.csv](PIZ+11/DAAD19.csv): RCSB PDB IDs for proteins listed by [Del Galdo et al. (2019)](https://doi.org/10.1007/s00239-019-09894-4).
+- [divergence_times.csv](divergence_times.csv): Divergence time estimates downloaded from [TimeTree](https://timetree.org/) version 5.1; selected taxa represent branches from ancestral nodes defined by Perez-Jimenez et al. (2011).
 
 [CDY+25/IPMDH.fasta](CDY+25/IPMDH.fasta): Data for reconstructed ancestral 3-isopropylmalate dehydrogenases sequences taken from Supporting Information of [Cui et al. (2025)](https://doi.org/10.1002/pro.70071)
 
@@ -99,6 +100,7 @@ source_data()
 [IR24](IR24): Digitization of the paleotemperature reconstruction from Fig. 3B of [Isson and Rauzi (2024)](https://doi.org/10.1126/science.adg1366).
 
 [RBH+26](RBH+26): Reconstructed ancestral sequences of nitrogenase sequences from the [GitHub repo](https://github.com/kacarlab/N-isotope) of [Rucker et al. (2026)](https://doi.org/10.1038/s41467-025-67423-y).
+
 
 ## BacDive analysis
 
